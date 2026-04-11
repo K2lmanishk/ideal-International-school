@@ -9,7 +9,16 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from models import db, User, Student, Faculty, Course, Subject, Enrollment, Attendance, Marks, Fee, Notice, FacultyAssignment, Timetable, Notification
-from config import Config
+import os
+
+# Configuration with environment variable fallback
+class Config:
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///college.db')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
+    TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
+    TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
 from datetime import datetime, timedelta
 import json
 import os
