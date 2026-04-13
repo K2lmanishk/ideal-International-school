@@ -1,7 +1,30 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Database
 *.db
 *.sqlite
+*.sqlite3
 instance/
+
+# Uploads
+static/uploads/*
+
+# Secrets
+config.py
 .env
+
+# IDE
 .vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

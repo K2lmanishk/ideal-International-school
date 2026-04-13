@@ -8,7 +8,7 @@ from flask import Flask, render_template, redirect, url_for, request, flash, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Student, Faculty, Course, Subject, Attendance, Marks, Fee, Notice, FacultyAssignment, Timetable, Notification
+from models import db, User, Student, Faculty, Course, Subject, Enrollment, Attendance, Marks, Fee, Notice, FacultyAssignment, Timetable, Notification
 import os
 from datetime import datetime, timedelta
 import json
@@ -34,11 +34,6 @@ ACADEMIC_YEAR = "2024-2026"
 # 2. APP INITIALIZATION
 app = Flask(__name__)
 app.config.from_object(Config)
-
-# Session Security
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # 3. CONFIGURATION & HELPER FUNCTIONS
 UPLOAD_FOLDER = 'static/uploads'
@@ -192,7 +187,7 @@ def add_user():
                 user_id=user.id,
                 roll_no=data.get('roll_no', ''),
                 course_id=data.get('course_id') if data.get('course_id') else None,
-                class_name=data.get('class_name', ''),
+                class_name=data.get('class_name') if data.get('class_name') else None,
                 dob=datetime.strptime(data['dob'], '%Y-%m-%d') if data.get('dob') else None,
                 phone=data.get('phone', ''),
                 address=data.get('address', ''),
@@ -547,7 +542,7 @@ def add_timetable():
     if current_user.role != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
     timetable = Timetable(
-        course_id=request.form.get('course_id') or None,
+        course_id=request.form.get('course_id'),
         class_name=request.form.get('class_name'),
         day=request.form.get('day'),
         time_slot=request.form.get('time_slot'),
@@ -628,6 +623,59 @@ def send_notification():
     flash('Notification sent!', 'success')
     return redirect(url_for('manage_notifications_page'))
 
+@app.route('/admin/notification/delete/<int:notification_id>', methods=['POST'])
+@login_required
+def delete_notification(notification_id):
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    notification = Notification.query.get(notification_id)
+    if notification and notification.created_by == current_user.id:
+        db.session.delete(notification)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Notification deleted'})
+    
+    return jsonify({'success': False, 'message': 'Notification not found'})
+
+@app.route('/api/notifications/unread')
+@login_required
+def get_unread_notifications():
+    notifications = Notification.query.filter(
+        ((Notification.audience == 'all') | 
+         (Notification.audience == current_user.role) |
+         (Notification.specific_user_id == current_user.id)) &
+        (Notification.is_read == False)
+    ).order_by(Notification.created_at.desc()).limit(10).all()
+    
+    return jsonify([{
+        'id': n.id, 'title': n.title,
+        'message': n.message[:100] + '...' if len(n.message) > 100 else n.message,
+        'type': n.notification_type,
+        'created_at': n.created_at.strftime('%Y-%m-%d %H:%M'),
+        'time_ago': 'just now'
+    } for n in notifications])
+
+@app.route('/api/notification/mark-read/<int:notification_id>', methods=['POST'])
+@login_required
+def mark_notification_read(notification_id):
+    notification = Notification.query.get(notification_id)
+    if notification:
+        notification.is_read = True
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False})
+
+@app.route('/api/notification/mark-all-read', methods=['POST'])
+@login_required
+def mark_all_notifications_read():
+    Notification.query.filter(
+        ((Notification.audience == 'all') | 
+         (Notification.audience == current_user.role) |
+         (Notification.specific_user_id == current_user.id))
+    ).update({Notification.is_read: True})
+    db.session.commit()
+    return jsonify({'success': True})
+
 # ============================================
 # 12. SMS ROUTES
 # ============================================
@@ -676,7 +724,7 @@ def send_fee_reminder(student_id):
         fee = Fee.query.filter_by(student_id=student_id).filter(Fee.status != 'Paid').first()
         if fee:
             due = fee.amount - fee.paid_amount
-            message = f"Dear Parent, your child {student.user.full_name}'s school fee of Rs.{due:.2f} is pending. - {SCHOOL_NAME}"
+            message = f"Dear {student.user.full_name}, your fee of Rs.{due:.2f} is pending. Due date: {fee.due_date}. - {SCHOOL_NAME}"
             success, sid = send_sms(student.phone, message)
             flash('SMS sent!' if success else f'Failed: {sid}', 'success' if success else 'danger')
     return redirect(url_for('admin_manage_fees'))
@@ -704,7 +752,7 @@ def admin_manage_fees():
                 pending_count += 1
     
     total_due = total_fees - total_paid
-    default_message = f"Dear Parent, your child's school fee is pending. Please pay at the earliest. - {SCHOOL_NAME}"
+    default_message = f"Dear Student, your school fee is pending. Please pay at the earliest. - {SCHOOL_NAME}"
     
     return render_template('admin_fees.html', fee_data=fee_data, total_fees=total_fees, total_paid=total_paid, total_due=total_due, pending_count=pending_count, default_message=default_message)
 
@@ -854,135 +902,49 @@ def get_students_by_subject(subject_id):
     students = Student.query.filter_by(class_name=subject.class_name).all()
     return jsonify([{'id': s.id, 'roll_no': s.roll_no, 'name': s.user.full_name} for s in students])
 
-@app.route('/api/notifications/unread')
-@login_required
-def get_unread_notifications():
-    notifications = Notification.query.filter(
-        ((Notification.audience == 'all') | 
-         (Notification.audience == current_user.role) |
-         (Notification.specific_user_id == current_user.id)) &
-        (Notification.is_read == False)
-    ).order_by(Notification.created_at.desc()).limit(10).all()
-    
-    return jsonify([{
-        'id': n.id, 'title': n.title,
-        'message': n.message[:100] + '...' if len(n.message) > 100 else n.message,
-        'type': n.notification_type,
-        'created_at': n.created_at.strftime('%Y-%m-%d %H:%M'),
-        'time_ago': 'just now'
-    } for n in notifications])
-
-@app.route('/api/notification/mark-read/<int:notification_id>', methods=['POST'])
-@login_required
-def mark_notification_read(notification_id):
-    notification = Notification.query.get(notification_id)
-    if notification:
-        notification.is_read = True
-        db.session.commit()
-        return jsonify({'success': True})
-    return jsonify({'success': False})
-
-@app.route('/api/notification/mark-all-read', methods=['POST'])
-@login_required
-def mark_all_notifications_read():
-    Notification.query.filter(
-        ((Notification.audience == 'all') | 
-         (Notification.audience == current_user.role) |
-         (Notification.specific_user_id == current_user.id))
-    ).update({Notification.is_read: True})
-    db.session.commit()
-    return jsonify({'success': True})
-
 # ============================================
 # 17. MAIN - APPLICATION ENTRY POINT
 # ============================================
 
 if __name__ == '__main__':
     with app.app_context():
-        # Create instance folder and database
-        os.makedirs('instance', exist_ok=True)
         db.create_all()
         os.makedirs(UPLOAD_FOLDER, exist_ok=True)
         
-        print("✅ Database tables created!")
-        
-        # Create admin user
         if not User.query.filter_by(username='admin').first():
-            admin = User(
-                username='admin',
-                email=SCHOOL_EMAIL,
-                password_hash=generate_password_hash('admin123'),
-                role='admin',
-                full_name='School Administrator'
-            )
+            admin = User(username='admin', email=SCHOOL_EMAIL, password_hash=generate_password_hash('admin123'), role='admin', full_name='School Administrator')
             db.session.add(admin)
             db.session.commit()
             print("✅ Default admin created: admin / admin123")
         
-        # Create default courses (streams)
+        # Create default courses (classes)
         if Course.query.count() == 0:
             default_courses = [
                 Course(name='Science', code='SCI', description='Science Stream with PCM/PCB'),
-                Course(name='Commerce', code='COM', description='Commerce Stream'),
+                Course(name='Commerce', code='COM', description='Commerce Stream with Accountancy, Business Studies, Economics'),
                 Course(name='Arts', code='ART', description='Arts/Humanities Stream')
             ]
             db.session.add_all(default_courses)
             db.session.commit()
             print("✅ Demo courses created!")
         
-        # Create demo faculty
         if not User.query.filter_by(username='faculty1').first():
-            faculty_user = User(
-                username='faculty1',
-                email='faculty@kdpublicschool.com',
-                password_hash=generate_password_hash('pass123'),
-                role='faculty',
-                full_name='Dr. John Smith'
-            )
+            faculty_user = User(username='faculty1', email='faculty@kdpublicschool.com', password_hash=generate_password_hash('pass123'), role='faculty', full_name='Dr. John Smith')
             db.session.add(faculty_user)
             db.session.commit()
-            db.session.add(Faculty(
-                user_id=faculty_user.id,
-                department='Science',
-                designation='Senior Teacher',
-                qualification='Ph.D.',
-                joining_date=datetime.utcnow().date()
-            ))
+            db.session.add(Faculty(user_id=faculty_user.id, department='Science', designation='Senior Teacher', qualification='Ph.D.', joining_date=datetime.utcnow().date()))
             db.session.commit()
             print("✅ Demo faculty created: faculty1 / pass123")
         
-        # Create demo student
         if not User.query.filter_by(username='student1').first():
-            student_user = User(
-                username='student1',
-                email='student@kdpublicschool.com',
-                password_hash=generate_password_hash('pass123'),
-                role='student',
-                full_name='Alice Johnson'
-            )
+            student_user = User(username='student1', email='student@kdpublicschool.com', password_hash=generate_password_hash('pass123'), role='student', full_name='Alice Johnson')
             db.session.add(student_user)
             db.session.commit()
-            student = Student(
-                user_id=student_user.id,
-                roll_no='KD2024001',
-                course_id=1,
-                class_name='Class 10',
-                dob=datetime(2010, 5, 15).date(),
-                phone='+919876543210',
-                address='Chapra, Bihar'
-            )
+            student = Student(user_id=student_user.id, roll_no='KD2024001', course_id=1, class_name='Class 10', dob=datetime(2010,5,15).date(), phone='+919876543210', address='Chapra, Bihar')
             db.session.add(student)
             db.session.commit()
-            db.session.add(Fee(
-                student_id=student.id,
-                amount=25000,
-                due_date=datetime.utcnow().date() + timedelta(days=30),
-                paid_amount=12500,
-                status='Partial'
-            ))
+            db.session.add(Fee(student_id=student.id, amount=25000, due_date=datetime.utcnow().date()+timedelta(days=30), paid_amount=12500, status='Partial'))
             db.session.commit()
             print("✅ Demo student created: student1 / pass123")
     
-    # Run app
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=5000)    
