@@ -8,7 +8,7 @@ from flask import Flask, render_template, redirect, url_for, request, flash, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Student, Faculty, Course, Subject, Enrollment, Attendance, Marks, Fee, Notice, FacultyAssignment, Timetable, Notification
+from models import db, User, Student, Faculty, Course, Subject, Attendance, Marks, Fee, Notice, FacultyAssignment, Timetable, Notification
 import os
 from datetime import datetime, timedelta
 import json
@@ -947,4 +947,5 @@ if __name__ == '__main__':
             db.session.commit()
             print("✅ Demo student created: student1 / pass123")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)    
+    port = int(os.environ.get('PORT', 5000))
+app.run(debug=False, host='0.0.0.0', port=port)    
