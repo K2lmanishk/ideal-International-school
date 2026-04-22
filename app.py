@@ -961,6 +961,26 @@ def setup_db():
         return "✅ Database setup complete!<br><br>Admin: admin / admin123<br><br><a href='/login'>Go to Login</a>"
     except Exception as e:
         return f"❌ Error: {str(e)}"
+    
+# Database call tracking
+original_create_all = db.create_all
+original_drop_all = db.drop_all
+
+def tracked_create_all(*args, **kwargs):
+    app.logger.error("🚨🚨🚨 FATAL: db.create_all() was called! This should NEVER happen in production.")
+    # यह पता लगाने के लिए कि किसने बुलाया, स्टैक ट्रेस प्रिंट करें
+    import traceback
+    app.logger.error(traceback.format_stack())
+    return original_create_all(*args, **kwargs)
+
+def tracked_drop_all(*args, **kwargs):
+    app.logger.error("🔥🔥🔥 DESTRUCTIVE: db.drop_all() was called! All data will be wiped.")
+    import traceback
+    app.logger.error(traceback.format_stack())
+    return original_drop_all(*args, **kwargs)
+
+db.create_all = tracked_create_all
+db.drop_all = tracked_drop_all
 
 @app.route('/api/get_students_by_subject/<int:subject_id>')
 @login_required
