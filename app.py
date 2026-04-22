@@ -920,6 +920,17 @@ def uploaded_file(filename):
 # ============================================
 # 16. API ENDPOINTS
 # ============================================
+@app.route('/show-profile-url')
+@login_required
+def show_profile_url():
+    user = current_user
+    pic_url = user.profile_pic
+    return f"""
+    <h3>Current Profile Picture URL in Database:</h3>
+    <p><code>{pic_url}</code></p>
+    <p><a href="/profile">Go back to Profile</a></p>
+    """
+
 @app.route('/debug-db')
 def debug_db():
     db_url = app.config.get('SQLALCHEMY_DATABASE_URI', 'Not Set')
