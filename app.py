@@ -915,6 +915,7 @@ def debug_db():
 @app.route('/setup-db')
 def setup_db():
     try:
+        db.drop_all()
         db.create_all()
         from models import User, Course, Faculty, Student, Fee
         from werkzeug.security import generate_password_hash
