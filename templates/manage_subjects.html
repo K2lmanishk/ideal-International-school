@@ -13,6 +13,9 @@
             <div class="card-header"><i class="bi bi-journal-plus"></i> Add New Subject</div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('add_subject') }}">
+                    <!-- CSRF Token (if enabled) -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                    
                     <div class="mb-3">
                         <label class="form-label">Stream (Optional)</label>
                         <select class="form-select" name="course_id">
@@ -23,8 +26,9 @@
                         </select>
                         <small class="text-muted">For Class 11-12, select the stream</small>
                     </div>
+                    
                     <div class="mb-3">
-                        <label class="form-label">Class</label>
+                        <label class="form-label">Class <span class="text-danger">*</span></label>
                         <select class="form-select" name="class_name" required>
                             <option value="">Select Class</option>
                             {% for class_item in classes %}
@@ -32,16 +36,25 @@
                             {% endfor %}
                         </select>
                     </div>
+                    
                     <div class="mb-3">
-                        <label class="form-label">Subject Name</label>
+                        <label class="form-label">Subject Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="name" required>
                     </div>
+                    
                     <div class="mb-3">
-                        <label class="form-label">Subject Code</label>
+                        <label class="form-label">Subject Code <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="code" required>
                     </div>
+                    
                     <div class="mb-3">
-                        <label class="form-label">Type</label>
+                        <label class="form-label">Credits <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" name="credits" min="1" max="10" value="4" required>
+                        <small class="text-muted">e.g., 4 for theory, 2 for practical</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Type <span class="text-danger">*</span></label>
                         <select class="form-select" name="type" required>
                             <option value="Theory">Theory</option>
                             <option value="Practical">Practical</option>
@@ -49,7 +62,10 @@
                             <option value="Elective">Elective</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-primary">Save Subject</button>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-save me-2"></i>Save Subject
+                    </button>
                 </form>
             </div>
         </div>
@@ -59,6 +75,7 @@
         <div class="card mb-4">
             <div class="card-header"><i class="bi bi-journal"></i> Subject List</div>
             <div class="card-body">
+                {% if subjects %}
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover">
                         <thead class="table-dark">
@@ -68,6 +85,7 @@
                                 <th>Code</th>
                                 <th>Class</th>
                                 <th>Stream</th>
+                                <th>Credits</th>
                                 <th>Type</th>
                             </tr>
                         </thead>
@@ -79,12 +97,19 @@
                                 <td>{{ subject.code }}</td>
                                 <td>{{ subject.class_name }}</td>
                                 <td>{{ subject.course.name if subject.course else 'N/A' }}</td>
-                                <td>{{ subject.type }}</td>
+                                <td>{{ subject.credits }}</td>
+                                <td><span class="badge bg-info">{{ subject.type }}</span></td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-journal-x" style="font-size: 4rem; opacity: 0.3;"></i>
+                    <p class="text-muted mt-3">No subjects added yet.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
