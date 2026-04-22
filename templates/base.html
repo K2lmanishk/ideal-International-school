@@ -187,7 +187,8 @@
                             <div class="avatar-wrapper">
                                 <div class="avatar-circle">
                                     {% if current_user.profile_pic and current_user.profile_pic != 'default.png' %}
-                                    <img src="{{ url_for('uploaded_file', filename=current_user.profile_pic) }}" alt="Profile">
+                                    <img src="{{ current_user.profile_pic }}" alt="Profile" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <span style="display: none;">{{ current_user.full_name[0] | upper }}</span>
                                     {% else %}
                                     <span>{{ current_user.full_name[0] | upper }}</span>
                                     {% endif %}
@@ -227,7 +228,8 @@
                         <div class="sidebar-avatar">
                             <div class="avatar-circle large">
                                 {% if current_user.profile_pic and current_user.profile_pic != 'default.png' %}
-                                <img src="{{ url_for('uploaded_file', filename=current_user.profile_pic) }}" alt="Profile">
+                                <img src="{{ current_user.profile_pic }}" alt="Profile" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <span style="display: none;">{{ current_user.full_name[0] | upper }}</span>
                                 {% else %}
                                 <span>{{ current_user.full_name[0] | upper }}</span>
                                 {% endif %}
@@ -275,8 +277,8 @@
                             <div class="glass-card p-3">
                                 <div class="d-flex flex-wrap justify-content-between align-items-center">
                                     <div>
-                                        <h4 class="mb-1">{{ Ideal_International_School }}</h4>
-                                        <p class="text-muted mb-0 small">{{ Tarwara_Bihar }} | {{ +91-9973481187 }}</p>
+                                        <h4 class="mb-1">{{ school_name }}</h4>
+                                        <p class="text-muted mb-0 small">{{ school_address }} | {{ school_contact }}</p>
                                     </div>
                                     <div class="text-end">
                                         <span class="badge bg-primary">Academic Year: {{ academic_year }}</span>
