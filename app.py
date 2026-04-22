@@ -15,6 +15,19 @@ import json
 import os
 import qrcode
 import io
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+# Cloudinary Configuration (Render Environment Variables से लिया जाएगा)
+cloudinary.config(
+    cloud_name=os.environ.get('dtredaed5'),
+    api_key=os.environ.get('856139762452811'),
+    api_secret=os.environ.get('LtKwkauXCRmlrdrU5Med6vG6mjs'),
+    secure=True
+)
+
+
 
 # Configuration with environment variable fallback
 # Configuration with environment variable fallback
@@ -796,28 +809,44 @@ def profile():
     faculty = Faculty.query.filter_by(user_id=user.id).first() if user.role == 'faculty' else None
     return render_template('profile.html', user=user, student=student, faculty=faculty)
 
-@app.route('/profile/update', methods=['POST'])
+@app.route('/upload_profile_pic', methods=['POST'])
 @login_required
-def update_profile():
-    user = current_user
-    data = request.form
-    user.full_name = data.get('full_name', user.full_name)
+def upload_profile_pic():
+    if 'profile_pic' not in request.files:
+        flash('No file selected', 'danger')
+        return redirect(url_for('profile'))
     
-    if user.role == 'student':
-        student = Student.query.filter_by(user_id=user.id).first()
-        if student:
-            student.phone = data.get('phone', student.phone)
-            student.address = data.get('address', student.address)
-            student.parent_contact = data.get('parent_contact', student.parent_contact)
-    elif user.role == 'faculty':
-        faculty = Faculty.query.filter_by(user_id=user.id).first()
-        if faculty:
-            faculty.department = data.get('department', faculty.department)
-            faculty.designation = data.get('designation', faculty.designation)
-            faculty.qualification = data.get('qualification', faculty.qualification)
+    file = request.files['profile_pic']
+    if file.filename == '':
+        flash('No file selected', 'danger')
+        return redirect(url_for('profile'))
     
-    db.session.commit()
-    flash('Profile updated!', 'success')
+    if file and allowed_file(file.filename):
+        try:
+            # Cloudinary पर अपलोड करें
+            upload_result = cloudinary.uploader.upload(
+                file,
+                folder="ideal_school_profiles", # सभी फ़ोटो इस फ़ोल्डर में व्यवस्थित होंगी
+                public_id=f"user_{current_user.id}",
+                overwrite=True,
+                resource_type="image"
+            )
+            
+            # Cloudinary द्वारा दिया गया सुरक्षित URL प्राप्त करें
+            profile_pic_url = upload_result['secure_url']
+            
+            # डेटाबेस में केवल यह URL सेव करें
+            current_user.profile_pic = profile_pic_url
+            db.session.commit()
+            
+            flash('Profile picture updated successfully!', 'success')
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error uploading to Cloudinary: {str(e)}', 'danger')
+    else:
+        flash('Invalid file type. Allowed: png, jpg, jpeg, gif, webp', 'danger')
+    
     return redirect(url_for('profile'))
 
 @app.route('/change-password', methods=['POST'])
