@@ -892,6 +892,17 @@ def uploaded_file(filename):
 # ============================================
 # 16. API ENDPOINTS
 # ============================================
+@app.route('/debug-db')
+def debug_db():
+    db_url = app.config.get('SQLALCHEMY_DATABASE_URI', 'Not Set')
+    # सुरक्षा के लिए पासवर्ड छिपाएँ
+    if 'postgresql://' in db_url:
+        parts = db_url.split('@')
+        if len(parts) > 1:
+            db_url = 'postgresql://***:***@' + parts[1]
+    return f"Current Database URL: {db_url}"
+
+
 @app.route('/setup-db')
 def setup_db():
     try:
