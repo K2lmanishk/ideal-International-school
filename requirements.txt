@@ -14,4 +14,4 @@ pillow==10.2.0
 gunicorn==21.2.0
 twilio==9.4.0
 psycopg2-binary
-cloudinary
+cloudinary==1.44.2
