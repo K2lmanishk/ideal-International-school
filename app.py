@@ -16,10 +16,19 @@ import qrcode
 import io
 
 # Configuration with environment variable fallback
+# Configuration with environment variable fallback
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'c63fe9c3a2f56ac7c926e52ac81330559a9ed36b38ee4c4b0180bc66a83279fa')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///school.db')
+    
+    # ✅ PostgreSQL URL फिक्स
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url and database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_DATABASE_URI = database_url or 'sqlite:///school.db'
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # ✅ Twilio के लिए सही एनवायरनमेंट वेरिएबल नाम
     TWILIO_ACCOUNT_SID = os.environ.get('ACf38ee849bde7220520912321ef63b9f6', '')
     TWILIO_AUTH_TOKEN = os.environ.get('fde437e10e1ab7fa1600e10ae3193363', '')
     TWILIO_PHONE_NUMBER = os.environ.get('+16624958018', '')
