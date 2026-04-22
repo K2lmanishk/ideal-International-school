@@ -17,18 +17,18 @@ import io
 
 # Configuration with environment variable fallback
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'kd-public-school-secret-key-2024')
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'c63fe9c3a2f56ac7c926e52ac81330559a9ed36b38ee4c4b0180bc66a83279fa')
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///school.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
-    TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
-    TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
+    TWILIO_ACCOUNT_SID = os.environ.get('ACf38ee849bde7220520912321ef63b9f6', '')
+    TWILIO_AUTH_TOKEN = os.environ.get('fde437e10e1ab7fa1600e10ae3193363', '')
+    TWILIO_PHONE_NUMBER = os.environ.get('+16624958018', '')
 
 # SCHOOL CONFIGURATION
-SCHOOL_NAME = "KD Public School"
-SCHOOL_ADDRESS = "Chapra, Bihar 841313"
-SCHOOL_CONTACT = "+91-9876543210"
-SCHOOL_EMAIL = "kdpublicschoolpachraur@gmail.com"
+SCHOOL_NAME = "Ideal International School"
+SCHOOL_ADDRESS = "Tarwara, Bihar 841506"
+SCHOOL_CONTACT = "+91-9973481187"
+SCHOOL_EMAIL = "info@iistsiwan.com"
 ACADEMIC_YEAR = "2024-2026"
 
 # 2. APP INITIALIZATION
