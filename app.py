@@ -911,6 +911,20 @@ def debug_db():
             db_url = 'postgresql://***:***@' + parts[1]
     return f"Current Database URL: {db_url}"
 
+@app.route('/debug-db-engine')
+def debug_db_engine():
+    try:
+        engine = db.engine
+        # Test actual connection
+        with engine.connect() as conn:
+            result = conn.execute("SELECT 1").scalar()
+        return f"""
+        <h3>Active Database Engine: {engine.name}</h3>
+        <p>Connection Test: {'✅ Success' if result == 1 else '❌ Failed'}</p>
+        <p>Database URL (masked): {app.config.get('SQLALCHEMY_DATABASE_URI', 'Not Set').split('@')[-1] if '@' in app.config.get('SQLALCHEMY_DATABASE_URI', '') else 'N/A'}</p>
+        """
+    except Exception as e:
+        return f"❌ Error connecting to database: {str(e)}"
 
 @app.route('/setup-db')
 def setup_db():
