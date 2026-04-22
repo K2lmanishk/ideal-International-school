@@ -26,13 +26,13 @@
                 <!-- Profile Picture -->
                 <div class="mb-3">
                     {% if current_user.profile_pic %}
-                    <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" 
-                         class="rounded-circle border border-3 border-primary" 
-                         style="width: 120px; height: 120px; object-fit: cover;">
+                     <img src="{{ current_user.profile_pic }}" 
+                     style="width: 120px !important; height: 120px !important; display: inline-block !important; visibility: visible !important; object-fit: cover; border: 3px solid red !important;"
+                     onerror="this.src='https://ui-avatars.com/api/?name={{ current_user.full_name }}&size=120&background=4e73df&color=fff';">
                     {% else %}
-                    <img src="https://ui-avatars.com/api/?name={{ current_user.full_name }}&size=120&background=4e73df&color=fff" 
-                         class="rounded-circle border border-3 border-primary">
-                    {% endif %}
+                  <img src="https://ui-avatars.com/api/?name={{ current_user.full_name }}&size=120&background=4e73df&color=fff" 
+                     class="rounded-circle border border-3 border-primary">
+                {% endif %}
                 </div>
                 
                 <h5 class="mb-1">{{ current_user.full_name }}</h5>
