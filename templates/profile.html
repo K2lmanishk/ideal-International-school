@@ -27,7 +27,8 @@
                 <div class="mb-3">
                     {% if current_user.profile_pic %}
                      <img src="{{ current_user.profile_pic }}" 
-                     style="width: 120px !important; height: 120px !important; display: inline-block !important; visibility: visible !important; object-fit: cover; border: 3px solid red !important;"
+                      class="rounded-circle border border-3 border-primary" 
+                      style="width: 120px; height: 120px; object-fit: cover;"
                      onerror="this.src='https://ui-avatars.com/api/?name={{ current_user.full_name }}&size=120&background=4e73df&color=fff';">
                     {% else %}
                   <img src="https://ui-avatars.com/api/?name={{ current_user.full_name }}&size=120&background=4e73df&color=fff" 
