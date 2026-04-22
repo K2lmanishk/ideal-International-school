@@ -9,9 +9,10 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from models import db, User, Student, Faculty, Course, Subject, Attendance, Marks, Fee, Notice, FacultyAssignment, Timetable, Notification
-import os
+from sqlalchemy import text
 from datetime import datetime, timedelta
 import json
+import os
 import qrcode
 import io
 
