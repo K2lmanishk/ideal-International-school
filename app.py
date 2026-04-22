@@ -873,44 +873,6 @@ def change_password():
 # 15. PROFILE PHOTO UPLOAD
 # ============================================
 
-@app.route('/upload_profile_pic', methods=['POST'])
-@login_required
-def upload_profile_pic():
-    if 'profile_pic' not in request.files:
-        flash('No file selected', 'danger')
-        return redirect(url_for('profile'))
-    
-    file = request.files['profile_pic']
-    if file.filename == '':
-        flash('No file selected', 'danger')
-        return redirect(url_for('profile'))
-    
-    if file and allowed_file(file.filename):
-        try:
-            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-            
-            ext = file.filename.rsplit('.', 1)[1].lower()
-            filename = secure_filename(f"user_{current_user.id}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.{ext}")
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-            
-            if current_user.profile_pic and current_user.profile_pic != 'default.png':
-                old_filepath = os.path.join(app.config['UPLOAD_FOLDER'], current_user.profile_pic)
-                if os.path.exists(old_filepath):
-                    os.remove(old_filepath)
-            
-            current_user.profile_pic = filename
-            db.session.commit()
-            flash('Profile picture updated!', 'success')
-            
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error: {str(e)}', 'danger')
-    else:
-        flash('Invalid file type. Allowed: png, jpg, jpeg, gif, webp', 'danger')
-    
-    return redirect(url_for('profile'))
-
 @app.route('/delete_profile_pic', methods=['POST'])
 @login_required
 def delete_profile_pic():
