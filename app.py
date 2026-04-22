@@ -21,9 +21,9 @@ import cloudinary.api
 
 # Cloudinary Configuration (Render Environment Variables से लिया जाएगा)
 cloudinary.config(
-    cloud_name=os.environ.get('dtredaed5'),
-    api_key=os.environ.get('856139762452811'),
-    api_secret=os.environ.get('LtKwkauXCRmlrdrU5Med6vG6mjs'),
+   cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.environ.get('CLOUDINARY_API_KEY'),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
     secure=True
 )
 
