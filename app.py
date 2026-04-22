@@ -800,6 +800,32 @@ def record_payment():
 # ============================================
 # 14. PROFILE ROUTES
 # ============================================
+@app.route('/profile/update', methods=['POST'])
+@login_required
+def update_profile():
+    user = current_user
+    data = request.form
+    
+    # मूल जानकारी अपडेट करें
+    user.full_name = data.get('full_name', user.full_name)
+    
+    # भूमिका के अनुसार अतिरिक्त जानकारी अपडेट करें
+    if user.role == 'student':
+        student = Student.query.filter_by(user_id=user.id).first()
+        if student:
+            student.phone = data.get('phone', student.phone)
+            student.address = data.get('address', student.address)
+            student.parent_contact = data.get('parent_contact', student.parent_contact)
+    elif user.role == 'faculty':
+        faculty = Faculty.query.filter_by(user_id=user.id).first()
+        if faculty:
+            faculty.department = data.get('department', faculty.department)
+            faculty.designation = data.get('designation', faculty.designation)
+            faculty.qualification = data.get('qualification', faculty.qualification)
+    
+    db.session.commit()
+    flash('Profile updated successfully!', 'success')
+    return redirect(url_for('profile'))
 
 @app.route('/profile')
 @login_required
@@ -872,6 +898,7 @@ def change_password():
 # ============================================
 # 15. PROFILE PHOTO UPLOAD
 # ============================================
+
 
 @app.route('/delete_profile_pic', methods=['POST'])
 @login_required
