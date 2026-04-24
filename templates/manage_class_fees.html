@@ -17,22 +17,12 @@
                         <label>Class Name</label>
                         <select name="class_name" class="form-select" required>
                             <option value="">-- Select Class --</option>
-                            <option>Class 1</option>
-                            <option>Class 2</option>
-                            <option>Class 3</option>
-                            <option>Class 4</option>
-                            <option>Class 5</option>
-                            <option>Class 6</option>
-                            <option>Class 7</option>
-                            <option>Class 8</option>
-                            <option>Class 9</option>
+                            <option>Class 1</option><option>Class 2</option><option>Class 3</option>
+                            <option>Class 4</option><option>Class 5</option><option>Class 6</option>
+                            <option>Class 7</option><option>Class 8</option><option>Class 9</option>
                             <option>Class 10</option>
-                            <option>Class 11 Science</option>
-                            <option>Class 11 Commerce</option>
-                            <option>Class 11 Arts</option>
-                            <option>Class 12 Science</option>
-                            <option>Class 12 Commerce</option>
-                            <option>Class 12 Arts</option>
+                            <option>Class 11 Science</option><option>Class 11 Commerce</option><option>Class 11 Arts</option>
+                            <option>Class 12 Science</option><option>Class 12 Commerce</option><option>Class 12 Arts</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -52,55 +42,50 @@
                 <div class="table-responsive">
                     <table class="table table-bordered">
                         <thead class="table-dark">
-                            <tr>
-                                <th>Class</th>
-                                <th>Current Fee (₹)</th>
-                                <th>Action</th>
-                            </tr>
+                            <tr><th>Class</th><th>Current Fee (₹)</th><th>Action</th></tr>
                         </thead>
                         <tbody>
-                            <!-- इस सूची में सभी क्लासेज डालें, चाहे fee डिफाइन हो या नहीं -->
-                            {% set all_classes = [
+                            {% set class_list = [
                                 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
                                 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
                                 'Class 11 Science', 'Class 11 Commerce', 'Class 11 Arts',
                                 'Class 12 Science', 'Class 12 Commerce', 'Class 12 Arts'
                             ] %}
-
-                            {% for class_name in all_classes %}
-                                {% set fee_record = class_fees|selectattr('class_name', 'equalto', class_name)|first %}
-                                <tr>
-                                    <td><strong>{{ class_name }}</strong></td>
-                                    <td>
-                                        {% if fee_record %}
-                                            ₹{{ "%.2f"|format(fee_record.fee_amount) }}
-                                        {% else %}
-                                            <span class="text-muted">Not set</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <!-- फीस सेट करने / एडिट करने का फॉर्म (inline) -->
-                                        <form method="POST" action="{{ url_for('add_class_fee') }}" class="d-flex gap-2">
-                                            <input type="hidden" name="class_name" value="{{ class_name }}">
-                                            <input type="number" name="fee_amount" class="form-control form-control-sm" 
-                                                   style="width: 120px;" 
-                                                   placeholder="Amount"
-                                                   value="{{ fee_record.fee_amount if fee_record else '' }}"
-                                                   step="0.01" required>
-                                            <button type="submit" class="btn btn-sm btn-primary">
-                                                {% if fee_record %}Update{% else %}Set{% endif %}
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
+                            
+                            {% for cls in class_list %}
+                            {% set fee_row = None %}
+                            {% for cf in class_fees %}
+                                {% if cf.class_name == cls %}
+                                    {% set fee_row = cf %}
+                                {% endif %}
+                            {% endfor %}
+                            <tr>
+                                <td><strong>{{ cls }}</strong></td>
+                                <td>
+                                    {% if fee_row %}
+                                        ₹{{ "%.2f"|format(fee_row.fee_amount) }}
+                                    {% else %}
+                                        <span class="text-muted">Not set</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('add_class_fee') }}" class="d-flex gap-2">
+                                        <input type="hidden" name="class_name" value="{{ cls }}">
+                                        <input type="number" name="fee_amount" class="form-control form-control-sm" 
+                                               style="width: 120px;" 
+                                               placeholder="Amount"
+                                               {% if fee_row %}value="{{ fee_row.fee_amount }}"{% endif %}
+                                               step="0.01" required>
+                                        <button type="submit" class="btn btn-sm btn-primary">
+                                            {% if fee_row %}Update{% else %}Set{% endif %}
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-                <p class="text-muted mt-3">
-                    <i class="bi bi-info-circle"></i> 
-                    जब कोई नया स्टूडेंट ऐड होगा, तो उसकी क्लास के अनुसार फीस अपने आप क्रिएट हो जाएगी।
-                </p>
             </div>
         </div>
     </div>
