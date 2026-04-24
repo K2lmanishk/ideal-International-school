@@ -1110,6 +1110,25 @@ def get_course_details(course_id):
         'subjects': [{'id': s.id, 'name': s.name, 'code': s.code, 'class_name': s.class_name} for s in subjects]
     })
 
+# ⚠️ TEMPORARY ROUTE – Remove after use ⚠️
+@app.route('/create-class-fees-table')
+def create_class_fees_table():
+    from sqlalchemy import text
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(text('''
+                CREATE TABLE IF NOT EXISTS class_fees (
+                    id SERIAL PRIMARY KEY,
+                    class_name VARCHAR(50) UNIQUE NOT NULL,
+                    fee_amount FLOAT NOT NULL,
+                    academic_year VARCHAR(20) DEFAULT '2024-2026'
+                )
+            '''))
+            conn.commit()
+        return "✅ Table 'class_fees' created successfully! <a href='/admin/class-fees'>Go to Class Fees</a>"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
 # ============================================
 # 15. MAIN - APPLICATION ENTRY POINT
 # ============================================
