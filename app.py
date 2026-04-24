@@ -545,6 +545,22 @@ def clean_class_names():
     except Exception as e:
         return f"❌ Error: {str(e)}"
 
+@app.route('/fix-class-names')
+def fix_class_names():
+    from models import ClassFee, db
+    try:
+        all_fees = ClassFee.query.all()
+        count = 0
+        for fee in all_fees:
+            cleaned = fee.class_name.strip()
+            if cleaned != fee.class_name:
+                fee.class_name = cleaned
+                count += 1
+        db.session.commit()
+        return f"✅ Fixed {count} class names (removed spaces). <a href='/admin/class-fees'>Go back</a>"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+    
 # ============================================
 # 7. FACULTY ROUTES
 # ============================================
