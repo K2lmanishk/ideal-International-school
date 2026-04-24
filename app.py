@@ -493,6 +493,11 @@ def manage_class_fees():
     if current_user.role != 'admin':
         return redirect(url_for('login'))
     class_fees = ClassFee.query.all()
+    # --- TEMPORARY LOGGING (REMOVE LATER) ---
+    app.logger.info(f"DEBUG: manage_class_fees query returned {len(class_fees)} records.")
+    for fee in class_fees:
+        app.logger.info(f"  - Class: '{fee.class_name}' (length {len(fee.class_name)}), Amount: {fee.fee_amount}")
+    # --- END OF TEMPORARY LOGGING ---
     return render_template('manage_class_fees.html', class_fees=class_fees)
 
 @app.route('/admin/class-fee/add', methods=['POST'])
