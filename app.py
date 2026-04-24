@@ -1,5 +1,5 @@
 # ============================================
-# SCHOOL MANAGEMENT SYSTEM - KD PUBLIC SCHOOL
+# SCHOOL MANAGEMENT SYSTEM - IDEAL INTERNATIONAL SCHOOL
 # All Features Working + Mobile Responsive
 # ============================================
 
@@ -19,7 +19,7 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 
-# Cloudinary Configuration (Render Environment Variables से लिया जाएगा)
+# Cloudinary Configuration
 cloudinary.config(
     cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
     api_key=os.environ.get('CLOUDINARY_API_KEY'),
@@ -27,36 +27,32 @@ cloudinary.config(
     secure=True
 )
 
-# Configuration with environment variable fallback
+# Configuration
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'c63fe9c3a2f56ac7c926e52ac81330559a9ed36b38ee4c4b0180bc66a83279fa')
-    
     database_url = os.environ.get('DATABASE_URL')
     if database_url and database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     SQLALCHEMY_DATABASE_URI = database_url or 'sqlite:///school.db'
-    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    
     TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
     TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
     TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
 
-# SCHOOL CONFIGURATION
+# School Configuration
 SCHOOL_NAME = "Ideal International School"
 SCHOOL_ADDRESS = "Tarwara, Bihar 841506"
 SCHOOL_CONTACT = "+91-9973481187"
 SCHOOL_EMAIL = "info@iistsiwan.com"
 ACADEMIC_YEAR = "2024-2026"
 
-# 2. APP INITIALIZATION
+# App Initialization
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# 3. CONFIGURATION & HELPER FUNCTIONS
+# Upload folder
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
@@ -64,26 +60,20 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def send_sms(to_phone, message):
-    """Send SMS via Twilio"""
     try:
         from twilio.rest import Client
         account_sid = app.config.get('TWILIO_ACCOUNT_SID')
         auth_token = app.config.get('TWILIO_AUTH_TOKEN')
         from_number = app.config.get('TWILIO_PHONE_NUMBER')
-        
         if not account_sid or not auth_token or not from_number:
-            print("Twilio credentials not configured!")
             return False, "Twilio credentials not configured"
-        
         client = Client(account_sid, auth_token)
         msg = client.messages.create(body=message, from_=from_number, to=to_phone)
-        print(f"SMS sent! SID: {msg.sid}")
         return True, msg.sid
     except Exception as e:
-        print(f"SMS Error: {str(e)}")
         return False, str(e)
 
-# 4. DATABASE & LOGIN MANAGER
+# Database & Login Manager
 db.init_app(app)
 
 login_manager = LoginManager()
@@ -140,7 +130,7 @@ def logout():
     return redirect(url_for('login'))
 
 # ============================================
-# 6. ADMIN ROUTES
+# 6. ADMIN ROUTES (Keep existing ones)
 # ============================================
 
 @app.route('/admin/dashboard')
@@ -276,11 +266,9 @@ def manage_courses():
 def add_course():
     if current_user.role != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
-    
     if Course.query.filter_by(code=request.form['code']).first():
         flash(f'Course code "{request.form["code"]}" already exists!', 'danger')
         return redirect(url_for('manage_courses'))
-    
     course = Course(
         name=request.form['name'],
         code=request.form['code'],
@@ -310,7 +298,9 @@ def manage_subjects():
         return redirect(url_for('login'))
     subjects = Subject.query.all()
     courses = Course.query.all()
-    classes = ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11 Science', 'Class 11 Commerce', 'Class 11 Arts', 'Class 12 Science', 'Class 12 Commerce', 'Class 12 Arts']
+    classes = ['Class 1','Class 2','Class 3','Class 4','Class 5','Class 6','Class 7','Class 8','Class 9','Class 10',
+               'Class 11 Science','Class 11 Commerce','Class 11 Arts',
+               'Class 12 Science','Class 12 Commerce','Class 12 Arts']
     return render_template('manage_subjects.html', subjects=subjects, courses=courses, classes=classes)
 
 @app.route('/admin/subject/add', methods=['POST'])
@@ -318,11 +308,9 @@ def manage_subjects():
 def add_subject():
     if current_user.role != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
-    
     if Subject.query.filter_by(code=request.form['code']).first():
         flash(f'Subject code "{request.form["code"]}" already exists!', 'danger')
         return redirect(url_for('manage_subjects'))
-    
     subject = Subject(
         course_id=request.form.get('course_id') or None,
         class_name=request.form['class_name'],
@@ -388,7 +376,7 @@ def delete_notice(notice_id):
     return jsonify({'success': False, 'message': 'Notice not found'})
 
 # ============================================
-# 6a. FEE MANAGEMENT (ADMIN) - NEW
+# 6a. FEE MANAGEMENT (ADMIN)
 # ============================================
 
 @app.route('/admin/manage-fees')
@@ -399,7 +387,6 @@ def admin_manage_fees():
     students = Student.query.all()
     fee_data = []
     total_fees = total_paid = pending_count = 0
-    
     for student in students:
         fee = Fee.query.filter_by(student_id=student.id).order_by(Fee.due_date.desc()).first()
         if fee:
@@ -408,10 +395,8 @@ def admin_manage_fees():
             total_paid += fee.paid_amount
             if fee.status != 'Paid':
                 pending_count += 1
-    
     total_due = total_fees - total_paid
     default_message = f"Dear Student, your school fee is pending. Please pay at the earliest. - {SCHOOL_NAME}"
-    
     return render_template('admin_fees.html', fee_data=fee_data,
                           total_fees=total_fees, total_paid=total_paid,
                           total_due=total_due, pending_count=pending_count,
@@ -422,12 +407,10 @@ def admin_manage_fees():
 def add_fee():
     if current_user.role != 'admin':
         return redirect(url_for('login'))
-    
     if request.method == 'POST':
         student_id = request.form.get('student_id')
         amount = float(request.form.get('amount'))
         due_date = datetime.strptime(request.form.get('due_date'), '%Y-%m-%d').date()
-        
         new_fee = Fee(
             student_id=student_id,
             amount=amount,
@@ -441,7 +424,6 @@ def add_fee():
         db.session.commit()
         flash('Fee record added successfully!', 'success')
         return redirect(url_for('admin_manage_fees'))
-    
     students = Student.query.all()
     return render_template('add_fee.html', students=students)
 
@@ -450,22 +432,18 @@ def add_fee():
 def record_payment():
     if current_user.role != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
-    
     fee_id = request.form.get('fee_id')
     payment_amount = float(request.form.get('payment_amount', 0))
     payment_method = request.form.get('payment_method', 'Cash')
     transaction_id = request.form.get('transaction_id', '')
     remarks = request.form.get('remarks', '')
-    
     fee = Fee.query.get(fee_id)
     if not fee:
         flash('Fee record not found!', 'danger')
         return redirect(url_for('admin_manage_fees'))
-    
     if payment_amount <= 0:
         flash('Payment amount must be greater than zero.', 'danger')
         return redirect(url_for('admin_manage_fees'))
-    
     fee.paid_amount += payment_amount
     fee.status = 'Paid' if fee.paid_amount >= fee.amount else 'Partial'
     fee.payment_date = datetime.utcnow()
@@ -473,7 +451,6 @@ def record_payment():
     fee.remarks = remarks
     if transaction_id:
         fee.transaction_id = transaction_id
-    
     db.session.commit()
     flash('Payment recorded successfully!', 'success')
     return redirect(url_for('admin_manage_fees'))
@@ -493,11 +470,6 @@ def manage_class_fees():
     if current_user.role != 'admin':
         return redirect(url_for('login'))
     class_fees = ClassFee.query.all()
-    # --- TEMPORARY LOGGING (REMOVE LATER) ---
-    app.logger.info(f"DEBUG: manage_class_fees query returned {len(class_fees)} records.")
-    for fee in class_fees:
-        app.logger.info(f"  - Class: '{fee.class_name}' (length {len(fee.class_name)}), Amount: {fee.fee_amount}")
-    # --- END OF TEMPORARY LOGGING ---
     return render_template('manage_class_fees.html', class_fees=class_fees)
 
 @app.route('/admin/class-fee/add', methods=['POST'])
@@ -505,20 +477,16 @@ def manage_class_fees():
 def add_class_fee():
     if current_user.role != 'admin':
         return redirect(url_for('login'))
-    
-    class_name = request.form.get('class_name', '').strip()   # ← STRIP HERE
+    class_name = request.form.get('class_name', '').strip()
     amount_str = request.form.get('fee_amount', '').strip()
-    
     if not class_name or not amount_str:
-        flash('Class name and fee amount required.', 'danger')
+        flash('Class name and fee amount are required.', 'danger')
         return redirect(url_for('manage_class_fees'))
-    
     try:
         amount = float(amount_str)
-    except:
-        flash('Invalid amount.', 'danger')
+    except ValueError:
+        flash('Invalid fee amount.', 'danger')
         return redirect(url_for('manage_class_fees'))
-    
     try:
         existing = ClassFee.query.filter_by(class_name=class_name).first()
         if existing:
@@ -526,46 +494,15 @@ def add_class_fee():
             existing.academic_year = ACADEMIC_YEAR
             flash(f'Updated fee for {class_name} to ₹{amount:.2f}', 'success')
         else:
-            cf = ClassFee(class_name=class_name, fee_amount=amount, academic_year=ACADEMIC_YEAR)
-            db.session.add(cf)
+            new_fee = ClassFee(class_name=class_name, fee_amount=amount, academic_year=ACADEMIC_YEAR)
+            db.session.add(new_fee)
             flash(f'Added fee for {class_name}: ₹{amount:.2f}', 'success')
         db.session.commit()
     except Exception as e:
         db.session.rollback()
         flash(f'Database error: {str(e)}', 'danger')
-    
     return redirect(url_for('manage_class_fees'))
 
-@app.route('/clean-class-names')
-def clean_class_names():
-    from models import ClassFee, db
-    try:
-        all_fees = ClassFee.query.all()
-        for fee in all_fees:
-            cleaned = fee.class_name.strip()
-            if cleaned != fee.class_name:
-                fee.class_name = cleaned
-        db.session.commit()
-        return f"✅ Cleaned {len(all_fees)} records."
-    except Exception as e:
-        return f"❌ Error: {str(e)}"
-
-@app.route('/fix-class-names')
-def fix_class_names():
-    from models import ClassFee, db
-    try:
-        all_fees = ClassFee.query.all()
-        count = 0
-        for fee in all_fees:
-            cleaned = fee.class_name.strip()
-            if cleaned != fee.class_name:
-                fee.class_name = cleaned
-                count += 1
-        db.session.commit()
-        return f"✅ Fixed {count} class names (removed spaces). <a href='/admin/class-fees'>Go back</a>"
-    except Exception as e:
-        return f"❌ Error: {str(e)}"
-    
 # ============================================
 # 7. FACULTY ROUTES
 # ============================================
@@ -586,13 +523,11 @@ def mark_attendance():
         return redirect(url_for('login'))
     faculty = Faculty.query.filter_by(user_id=current_user.id).first()
     assignments = FacultyAssignment.query.filter_by(faculty_id=faculty.id).all() if faculty else []
-    
     if request.method == 'POST':
         subject_id = request.form['subject_id']
         date = datetime.strptime(request.form['date'], '%Y-%m-%d')
         subject = Subject.query.get(subject_id)
         students = Student.query.filter_by(class_name=subject.class_name).all()
-        
         for student in students:
             status = request.form.get('status_' + str(student.id), 'Absent')
             attendance = Attendance.query.filter_by(student_id=student.id, subject_id=subject_id, date=date).first()
@@ -602,7 +537,6 @@ def mark_attendance():
         db.session.commit()
         flash('Attendance marked successfully', 'success')
         return redirect(url_for('mark_attendance'))
-    
     return render_template('attendance.html', assignments=assignments, today=datetime.utcnow().date())
 
 @app.route('/faculty/marks', methods=['GET', 'POST'])
@@ -612,14 +546,12 @@ def enter_marks():
         return redirect(url_for('login'))
     faculty = Faculty.query.filter_by(user_id=current_user.id).first()
     assignments = FacultyAssignment.query.filter_by(faculty_id=faculty.id).all() if faculty else []
-    
     if request.method == 'POST':
         subject_id = request.form['subject_id']
         exam_type = request.form['exam_type']
         max_marks = int(request.form['max_marks'])
         subject = Subject.query.get(subject_id)
         students = Student.query.filter_by(class_name=subject.class_name).all()
-        
         for student in students:
             obtained = request.form.get('marks_' + str(student.id))
             if obtained:
@@ -632,7 +564,6 @@ def enter_marks():
         db.session.commit()
         flash('Marks saved successfully', 'success')
         return redirect(url_for('enter_marks'))
-    
     return render_template('marks_entry.html', assignments=assignments)
 
 @app.route('/faculty/timetable')
@@ -643,7 +574,7 @@ def faculty_timetable():
     faculty = Faculty.query.filter_by(user_id=current_user.id).first()
     timetables = Timetable.query.filter_by(faculty_id=faculty.id).all() if faculty else []
     days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-    time_slots = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00']
+    time_slots = ['09:00-10:00','10:00-11:00','11:00-12:00','12:00-13:00','13:00-14:00','14:00-15:00','15:00-16:00','16:00-17:00']
     return render_template('faculty_timetable.html', timetables=timetables, days=days, time_slots=time_slots)
 
 # ============================================
@@ -656,32 +587,23 @@ def student_dashboard():
     if current_user.role != 'student':
         return redirect(url_for('login'))
     student = Student.query.filter_by(user_id=current_user.id).first()
-    
     attendance_percent = 0
     present = 0
     total_classes = 0
     recent_marks = []
     fee = None
     notices = []
-    
     if student:
         attendance_records = Attendance.query.filter_by(student_id=student.id).all()
         total_classes = len(attendance_records)
         present = sum(1 for a in attendance_records if a.status == 'Present')
         attendance_percent = (present / total_classes * 100) if total_classes > 0 else 0
-        
         recent_marks = Marks.query.filter_by(student_id=student.id).order_by(Marks.id.desc()).limit(5).all()
         fee = Fee.query.filter_by(student_id=student.id).order_by(Fee.due_date.desc()).first()
         notices = Notice.query.filter(Notice.audience.in_(['all', 'students'])).order_by(Notice.created_at.desc()).limit(5).all()
-    
-    return render_template('student_dashboard.html',
-                           student=student,
-                           attendance_percent=attendance_percent,
-                           present=present,
-                           total_classes=total_classes,
-                           recent_marks=recent_marks,
-                           fee=fee,
-                           notices=notices)
+    return render_template('student_dashboard.html', student=student,
+                           attendance_percent=attendance_percent, present=present, total_classes=total_classes,
+                           recent_marks=recent_marks, fee=fee, notices=notices)
 
 @app.route('/student/attendance')
 @login_required
@@ -723,12 +645,12 @@ def student_timetable():
         return redirect(url_for('login'))
     student = Student.query.filter_by(user_id=current_user.id).first()
     timetables = Timetable.query.filter_by(class_name=student.class_name).all() if student else []
-    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-    time_slots = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00']
+    days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+    time_slots = ['09:00-10:00','10:00-11:00','11:00-12:00','12:00-13:00','13:00-14:00','14:00-15:00','15:00-16:00','16:00-17:00']
     return render_template('student_timetable.html', timetables=timetables, days=days, time_slots=time_slots)
 
 # ============================================
-# 9. QR CODE & ID CARD ROUTES
+# 9. QR CODE & ID CARD
 # ============================================
 
 @app.route('/student/id-card')
@@ -747,14 +669,13 @@ def generate_qr(roll_no):
     qr.add_data(data)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
-    
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     buf.seek(0)
     return send_file(buf, mimetype='image/png')
 
 # ============================================
-# 10. TIMETABLE ROUTES (ADMIN)
+# 10. TIMETABLE (ADMIN)
 # ============================================
 
 @app.route('/admin/timetable')
@@ -766,10 +687,13 @@ def manage_timetable():
     faculties = Faculty.query.all()
     subjects = Subject.query.all()
     timetables = Timetable.query.all()
-    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-    time_slots = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00']
-    classes = ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11 Science', 'Class 11 Commerce', 'Class 11 Arts', 'Class 12 Science', 'Class 12 Commerce', 'Class 12 Arts']
-    return render_template('manage_timetable.html', courses=courses, faculties=faculties, subjects=subjects, timetables=timetables, days=days, time_slots=time_slots, classes=classes)
+    days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+    time_slots = ['09:00-10:00','10:00-11:00','11:00-12:00','12:00-13:00','13:00-14:00','14:00-15:00','15:00-16:00','16:00-17:00']
+    classes = ['Class 1','Class 2','Class 3','Class 4','Class 5','Class 6','Class 7','Class 8','Class 9','Class 10',
+               'Class 11 Science','Class 11 Commerce','Class 11 Arts',
+               'Class 12 Science','Class 12 Commerce','Class 12 Arts']
+    return render_template('manage_timetable.html', courses=courses, faculties=faculties, subjects=subjects,
+                           timetables=timetables, days=days, time_slots=time_slots, classes=classes)
 
 @app.route('/admin/timetable/add', methods=['POST'])
 @login_required
@@ -803,7 +727,7 @@ def delete_timetable(timetable_id):
     return jsonify({'success': False})
 
 # ============================================
-# 11. NOTIFICATION ROUTES
+# 11. NOTIFICATIONS
 # ============================================
 
 @app.route('/admin/notifications-page')
@@ -821,7 +745,6 @@ def manage_notifications_page():
 def send_notification():
     if current_user.role != 'admin':
         return jsonify({'success': False}), 403
-    
     notification = Notification(
         title=request.form.get('title'),
         message=request.form.get('message'),
@@ -841,25 +764,20 @@ def send_notification():
 def delete_notification(notification_id):
     if current_user.role != 'admin':
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
-    
     notification = Notification.query.get(notification_id)
     if notification and notification.created_by == current_user.id:
         db.session.delete(notification)
         db.session.commit()
         return jsonify({'success': True, 'message': 'Notification deleted'})
-    
     return jsonify({'success': False, 'message': 'Notification not found'})
 
 @app.route('/api/notifications/unread')
 @login_required
 def get_unread_notifications():
     notifications = Notification.query.filter(
-        ((Notification.audience == 'all') | 
-         (Notification.audience == current_user.role) |
-         (Notification.specific_user_id == current_user.id)) &
-        (Notification.is_read == False)
+        ((Notification.audience == 'all') | (Notification.audience == current_user.role) |
+         (Notification.specific_user_id == current_user.id)) & (Notification.is_read == False)
     ).order_by(Notification.created_at.desc()).limit(10).all()
-    
     return jsonify([{
         'id': n.id, 'title': n.title,
         'message': n.message[:100] + '...' if len(n.message) > 100 else n.message,
@@ -882,8 +800,7 @@ def mark_notification_read(notification_id):
 @login_required
 def mark_all_notifications_read():
     Notification.query.filter(
-        ((Notification.audience == 'all') | 
-         (Notification.audience == current_user.role) |
+        ((Notification.audience == 'all') | (Notification.audience == current_user.role) |
          (Notification.specific_user_id == current_user.id))
     ).update({Notification.is_read: True})
     db.session.commit()
@@ -905,24 +822,20 @@ def send_sms_page():
 def bulk_sms():
     if current_user.role != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
-    
     audience = request.form.get('audience')
     message = request.form.get('message')
-    
     if audience == 'all_students':
         students = Student.query.all()
     elif audience == 'due_fees':
         students = db.session.query(Student).join(Fee).filter(Fee.status != 'Paid').all()
     else:
         students = []
-    
     success_count = 0
     for student in students:
         if student.phone:
             success, _ = send_sms(student.phone, message)
             if success:
                 success_count += 1
-    
     flash(f'SMS sent to {success_count} students!', 'success' if success_count > 0 else 'info')
     return redirect(url_for('send_sms_page'))
 
@@ -931,7 +844,6 @@ def bulk_sms():
 def send_fee_reminder(student_id):
     if current_user.role != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
-    
     student = Student.query.get(student_id)
     if student and student.phone:
         fee = Fee.query.filter_by(student_id=student_id).filter(Fee.status != 'Paid').first()
@@ -951,9 +863,7 @@ def send_fee_reminder(student_id):
 def update_profile():
     user = current_user
     data = request.form
-    
     user.full_name = data.get('full_name', user.full_name)
-    
     if user.role == 'student':
         student = Student.query.filter_by(user_id=user.id).first()
         if student:
@@ -966,7 +876,6 @@ def update_profile():
             faculty.department = data.get('department', faculty.department)
             faculty.designation = data.get('designation', faculty.designation)
             faculty.qualification = data.get('qualification', faculty.qualification)
-    
     db.session.commit()
     flash('Profile updated successfully!', 'success')
     return redirect(url_for('profile'))
@@ -985,23 +894,15 @@ def upload_profile_pic():
     if 'profile_pic' not in request.files:
         flash('No file selected', 'danger')
         return redirect(url_for('profile'))
-    
     file = request.files['profile_pic']
     if file.filename == '':
         flash('No file selected', 'danger')
         return redirect(url_for('profile'))
-    
     if file and allowed_file(file.filename):
         try:
-            upload_result = cloudinary.uploader.upload(
-                file,
-                folder="ideal_school_profiles",
-                public_id=f"user_{current_user.id}",
-                overwrite=True,
-                resource_type="image"
-            )
-            profile_pic_url = upload_result['secure_url']
-            current_user.profile_pic = profile_pic_url
+            upload_result = cloudinary.uploader.upload(file, folder="ideal_school_profiles",
+                                                       public_id=f"user_{current_user.id}", overwrite=True, resource_type="image")
+            current_user.profile_pic = upload_result['secure_url']
             db.session.commit()
             flash('Profile picture updated successfully!', 'success')
         except Exception as e:
@@ -1009,7 +910,6 @@ def upload_profile_pic():
             flash(f'Error uploading to Cloudinary: {str(e)}', 'danger')
     else:
         flash('Invalid file type. Allowed: png, jpg, jpeg, gif, webp', 'danger')
-    
     return redirect(url_for('profile'))
 
 @app.route('/change-password', methods=['POST'])
@@ -1018,7 +918,6 @@ def change_password():
     current_password = request.form.get('current_password')
     new_password = request.form.get('new_password')
     confirm_password = request.form.get('confirm_password')
-    
     if not check_password_hash(current_user.password_hash, current_password):
         flash('Current password is incorrect!', 'danger')
     elif new_password != confirm_password:
@@ -1029,14 +928,12 @@ def change_password():
         current_user.password_hash = generate_password_hash(new_password)
         db.session.commit()
         flash('Password changed!', 'success')
-    
     return redirect(url_for('profile'))
 
 @app.route('/delete_profile_pic', methods=['POST'])
 @login_required
 def delete_profile_pic():
     if current_user.profile_pic and current_user.profile_pic != 'default.png':
-        # Optionally delete from Cloudinary
         current_user.profile_pic = 'default.png'
         db.session.commit()
         flash('Profile picture removed', 'success')
@@ -1056,11 +953,7 @@ def uploaded_file(filename):
 def show_profile_url():
     user = current_user
     pic_url = user.profile_pic
-    return f"""
-    <h3>Current Profile Picture URL in Database:</h3>
-    <p><code>{pic_url}</code></p>
-    <p><a href="/profile">Go back to Profile</a></p>
-    """
+    return f"<h3>Profile Picture URL: {pic_url}</h3><a href='/profile'>Back</a>"
 
 @app.route('/debug-db')
 def debug_db():
@@ -1071,73 +964,25 @@ def debug_db():
             db_url = 'postgresql://***:***@' + parts[1]
     return f"Current Database URL: {db_url}"
 
-@app.route('/debug-db-engine')
-def debug_db_engine():
-    try:
-        engine = db.engine
-        raw_conn = engine.raw_connection()
-        cursor = raw_conn.cursor()
-        cursor.execute("SELECT 1")
-        result = cursor.fetchone()[0]
-        cursor.close()
-        raw_conn.close()
-        return f"""
-        <h3>Active Database Engine: {engine.name}</h3>
-        <p>Connection Test: {'✅ Success' if result == 1 else '❌ Failed'}</p>
-        """
-    except Exception as e:
-        return f"❌ Error: {str(e)}"
-
 @app.route('/setup-db')
 def setup_db():
     try:
         db.drop_all()
         db.create_all()
-        from models import User, Course, Faculty, Student, Fee
         from werkzeug.security import generate_password_hash
-        
         if not User.query.filter_by(username='admin').first():
-            admin = User(
-                username='admin',
-                email='admin@school.edu',
-                password_hash=generate_password_hash('admin123'),
-                role='admin',
-                full_name='Administrator'
-            )
+            admin = User(username='admin', email='admin@school.edu', password_hash=generate_password_hash('admin123'), role='admin', full_name='Administrator')
             db.session.add(admin)
             db.session.commit()
-        
         if Course.query.count() == 0:
-            courses = [
-                Course(name='Science', code='SCI', description='Science Stream'),
-                Course(name='Commerce', code='COM', description='Commerce Stream'),
-                Course(name='Arts', code='ART', description='Arts Stream')
-            ]
+            courses = [Course(name='Science', code='SCI', description='Science Stream'),
+                       Course(name='Commerce', code='COM', description='Commerce Stream'),
+                       Course(name='Arts', code='ART', description='Arts Stream')]
             db.session.add_all(courses)
             db.session.commit()
-        
-        return "✅ Database setup complete!<br><br>Admin: admin / admin123<br><br><a href='/login'>Go to Login</a>"
+        return "✅ Database setup complete!<br><br>Admin: admin / admin123<br><br><a href='/login'>Login</a>"
     except Exception as e:
         return f"❌ Error: {str(e)}"
-
-# Database call tracking (for safety)
-original_create_all = db.create_all
-original_drop_all = db.drop_all
-
-def tracked_create_all(*args, **kwargs):
-    app.logger.error("🚨🚨🚨 FATAL: db.create_all() was called! This should NEVER happen in production.")
-    import traceback
-    app.logger.error(traceback.format_stack())
-    return original_create_all(*args, **kwargs)
-
-def tracked_drop_all(*args, **kwargs):
-    app.logger.error("🔥🔥🔥 DESTRUCTIVE: db.drop_all() was called! All data will be wiped.")
-    import traceback
-    app.logger.error(traceback.format_stack())
-    return original_drop_all(*args, **kwargs)
-
-db.create_all = tracked_create_all
-db.drop_all = tracked_drop_all
 
 @app.route('/api/get_students_by_subject/<int:subject_id>')
 @login_required
@@ -1163,62 +1008,52 @@ def get_course_details(course_id):
         'subjects': [{'id': s.id, 'name': s.name, 'code': s.code, 'class_name': s.class_name} for s in subjects]
     })
 
-@app.route('/debug-class-fees')
-def debug_class_fees():
-    from models import ClassFee
-    records = ClassFee.query.all()
-    if not records:
-        return "❌ class_fees table is empty."
-    html = "<h3>Records in class_fees:</h3><ul>"
-    for r in records:
-        html += f"<li>{r.class_name} → ₹{r.fee_amount}</li>"
-    html += "</ul>"
-    return html
-
-
 # ============================================
-# 15. MAIN - APPLICATION ENTRY POINT
+# 15. MAIN
 # ============================================
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        
+        # Default admin
         if not User.query.filter_by(username='admin').first():
-            admin = User(username='admin', email=SCHOOL_EMAIL, password_hash=generate_password_hash('admin123'), role='admin', full_name='School Administrator')
+            admin = User(username='admin', email=SCHOOL_EMAIL, password_hash=generate_password_hash('admin123'),
+                         role='admin', full_name='School Administrator')
             db.session.add(admin)
             db.session.commit()
-            print("✅ Default admin created: admin / admin123")
-        
+            print("✅ Default admin created")
+        # Demo courses
         if Course.query.count() == 0:
-            default_courses = [
-                Course(name='Science', code='SCI', description='Science Stream with PCM/PCB'),
-                Course(name='Commerce', code='COM', description='Commerce Stream with Accountancy, Business Studies, Economics'),
-                Course(name='Arts', code='ART', description='Arts/Humanities Stream')
-            ]
+            default_courses = [Course(name='Science', code='SCI', description='Science Stream'),
+                               Course(name='Commerce', code='COM', description='Commerce Stream'),
+                               Course(name='Arts', code='ART', description='Arts Stream')]
             db.session.add_all(default_courses)
             db.session.commit()
-            print("✅ Demo courses created!")
-        
+            print("✅ Demo courses created")
+        # Demo faculty
         if not User.query.filter_by(username='faculty1').first():
-            faculty_user = User(username='faculty1', email='faculty@kdpublicschool.com', password_hash=generate_password_hash('pass123'), role='faculty', full_name='Dr. John Smith')
+            faculty_user = User(username='faculty1', email='faculty@school.com', password_hash=generate_password_hash('pass123'),
+                                role='faculty', full_name='Dr. John Smith')
             db.session.add(faculty_user)
             db.session.commit()
-            db.session.add(Faculty(user_id=faculty_user.id, department='Science', designation='Senior Teacher', qualification='Ph.D.', joining_date=datetime.utcnow().date()))
+            db.session.add(Faculty(user_id=faculty_user.id, department='Science', designation='Senior Teacher',
+                                   qualification='Ph.D.', joining_date=datetime.utcnow().date()))
             db.session.commit()
-            print("✅ Demo faculty created: faculty1 / pass123")
-        
+            print("✅ Demo faculty created")
+        # Demo student
         if not User.query.filter_by(username='student1').first():
-            student_user = User(username='student1', email='student@kdpublicschool.com', password_hash=generate_password_hash('pass123'), role='student', full_name='Alice Johnson')
+            student_user = User(username='student1', email='student@school.com', password_hash=generate_password_hash('pass123'),
+                                role='student', full_name='Alice Johnson')
             db.session.add(student_user)
             db.session.commit()
-            student = Student(user_id=student_user.id, roll_no='KD2024001', course_id=1, class_name='Class 10', dob=datetime(2010,5,15).date(), phone='+919876543210', address='Chapra, Bihar')
+            student = Student(user_id=student_user.id, roll_no='KD2024001', course_id=1, class_name='Class 10',
+                              dob=datetime(2010,5,15).date(), phone='+919876543210', address='Chapra, Bihar')
             db.session.add(student)
             db.session.commit()
-            db.session.add(Fee(student_id=student.id, amount=25000, due_date=datetime.utcnow().date()+timedelta(days=30), paid_amount=12500, status='Partial'))
+            db.session.add(Fee(student_id=student.id, amount=25000, due_date=datetime.utcnow().date()+timedelta(days=30),
+                              paid_amount=12500, status='Partial'))
             db.session.commit()
-            print("✅ Demo student created: student1 / pass123")
-    
+            print("✅ Demo student created")
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
