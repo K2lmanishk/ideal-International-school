@@ -544,18 +544,7 @@ def clean_class_names():
         return f"✅ Cleaned {len(all_fees)} records."
     except Exception as e:
         return f"❌ Error: {str(e)}"
-    
-@app.route('/debug-class-fees')
-def debug_class_fees():
-    from models import ClassFee
-    records = ClassFee.query.all()
-    if not records:
-        return "❌ No records in class_fees table."
-    html = "<h3>Raw records:</h3><ul>"
-    for r in records:
-        html += f"<li>'{r.class_name}' (len={len(r.class_name)}) → {r.fee_amount}</li>"
-    html += "</ul>"
-    return html
+
 # ============================================
 # 7. FACULTY ROUTES
 # ============================================
