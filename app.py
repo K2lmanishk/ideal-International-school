@@ -501,8 +501,8 @@ def add_class_fee():
     if current_user.role != 'admin':
         return redirect(url_for('login'))
     
-    class_name = request.form.get('class_name')
-    amount_str = request.form.get('fee_amount')
+    class_name = request.form.get('class_name', '').strip()   # ← STRIP HERE
+    amount_str = request.form.get('fee_amount', '').strip()
     
     if not class_name or not amount_str:
         flash('Class name and fee amount required.', 'danger')
@@ -519,19 +519,43 @@ def add_class_fee():
         if existing:
             existing.fee_amount = amount
             existing.academic_year = ACADEMIC_YEAR
-            db.session.commit()
             flash(f'Updated fee for {class_name} to ₹{amount:.2f}', 'success')
         else:
             cf = ClassFee(class_name=class_name, fee_amount=amount, academic_year=ACADEMIC_YEAR)
             db.session.add(cf)
-            db.session.commit()
             flash(f'Added fee for {class_name}: ₹{amount:.2f}', 'success')
+        db.session.commit()
     except Exception as e:
         db.session.rollback()
         flash(f'Database error: {str(e)}', 'danger')
     
     return redirect(url_for('manage_class_fees'))
 
+@app.route('/clean-class-names')
+def clean_class_names():
+    from models import ClassFee, db
+    try:
+        all_fees = ClassFee.query.all()
+        for fee in all_fees:
+            cleaned = fee.class_name.strip()
+            if cleaned != fee.class_name:
+                fee.class_name = cleaned
+        db.session.commit()
+        return f"✅ Cleaned {len(all_fees)} records."
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+    
+@app.route('/debug-class-fees')
+def debug_class_fees():
+    from models import ClassFee
+    records = ClassFee.query.all()
+    if not records:
+        return "❌ No records in class_fees table."
+    html = "<h3>Raw records:</h3><ul>"
+    for r in records:
+        html += f"<li>'{r.class_name}' (len={len(r.class_name)}) → {r.fee_amount}</li>"
+    html += "</ul>"
+    return html
 # ============================================
 # 7. FACULTY ROUTES
 # ============================================
