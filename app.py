@@ -1055,6 +1055,18 @@ def add_fee_columns():
     except Exception as e:
         return f"❌ Error: {str(e)}"
 
+@app.route('/setup-db-update')
+def setup_db_update():
+    from sqlalchemy import text
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(text('ALTER TABLE fees ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50)'))
+            conn.execute(text('ALTER TABLE fees ADD COLUMN IF NOT EXISTS remarks TEXT'))
+            conn.commit()
+        return "✅ Database columns added successfully!"
+    except Exception as e:
+        return f"❌ An error occurred: {e}"
+
 # ============================================
 # 17. MAIN - APPLICATION ENTRY POINT
 # ============================================
