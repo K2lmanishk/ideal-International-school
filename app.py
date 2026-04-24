@@ -8,7 +8,7 @@ from flask import Flask, render_template, redirect, url_for, request, flash, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Student, Faculty, Course, Subject, Attendance, Marks, Fee, Notice, FacultyAssignment, Timetable, Notification
+from models import db, User, Student, Faculty, Course, Subject, Attendance, Marks, Fee, Notice, FacultyAssignment, Timetable, Notification, ClassFee
 from sqlalchemy import text
 from datetime import datetime, timedelta
 import json
@@ -31,7 +31,6 @@ cloudinary.config(
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'c63fe9c3a2f56ac7c926e52ac81330559a9ed36b38ee4c4b0180bc66a83279fa')
     
-    # ✅ PostgreSQL URL फिक्स
     database_url = os.environ.get('DATABASE_URL')
     if database_url and database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
@@ -39,7 +38,6 @@ class Config:
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
-    # ✅ Twilio के लिए सही एनवायरनमेंट वेरिएबल नाम
     TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
     TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
     TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
@@ -214,6 +212,22 @@ def add_user():
                 parent_contact=data.get('parent_contact', '')
             )
             db.session.add(student)
+            db.session.flush()
+            
+            # Auto-create fee based on class (if ClassFee entry exists)
+            class_fee_obj = ClassFee.query.filter_by(class_name=student.class_name).first()
+            if class_fee_obj:
+                fee = Fee(
+                    student_id=student.id,
+                    amount=class_fee_obj.fee_amount,
+                    due_date=datetime.utcnow().date() + timedelta(days=30),
+                    paid_amount=0,
+                    status='Pending',
+                    payment_method=None,
+                    remarks='Auto-created from class fee'
+                )
+                db.session.add(fee)
+                
         elif data['role'] == 'faculty':
             faculty = Faculty(
                 user_id=user.id,
@@ -374,6 +388,132 @@ def delete_notice(notice_id):
     return jsonify({'success': False, 'message': 'Notice not found'})
 
 # ============================================
+# 6a. FEE MANAGEMENT (ADMIN) - NEW
+# ============================================
+
+@app.route('/admin/manage-fees')
+@login_required
+def admin_manage_fees():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    students = Student.query.all()
+    fee_data = []
+    total_fees = total_paid = pending_count = 0
+    
+    for student in students:
+        fee = Fee.query.filter_by(student_id=student.id).order_by(Fee.due_date.desc()).first()
+        if fee:
+            fee_data.append({'student': student, 'fee': fee})
+            total_fees += fee.amount
+            total_paid += fee.paid_amount
+            if fee.status != 'Paid':
+                pending_count += 1
+    
+    total_due = total_fees - total_paid
+    default_message = f"Dear Student, your school fee is pending. Please pay at the earliest. - {SCHOOL_NAME}"
+    
+    return render_template('admin_fees.html', fee_data=fee_data,
+                          total_fees=total_fees, total_paid=total_paid,
+                          total_due=total_due, pending_count=pending_count,
+                          default_message=default_message)
+
+@app.route('/admin/add-fee', methods=['GET', 'POST'])
+@login_required
+def add_fee():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        student_id = request.form.get('student_id')
+        amount = float(request.form.get('amount'))
+        due_date = datetime.strptime(request.form.get('due_date'), '%Y-%m-%d').date()
+        
+        new_fee = Fee(
+            student_id=student_id,
+            amount=amount,
+            due_date=due_date,
+            paid_amount=0,
+            status='Pending',
+            payment_method=None,
+            remarks='Initial fee record'
+        )
+        db.session.add(new_fee)
+        db.session.commit()
+        flash('Fee record added successfully!', 'success')
+        return redirect(url_for('admin_manage_fees'))
+    
+    students = Student.query.all()
+    return render_template('add_fee.html', students=students)
+
+@app.route('/admin/record-payment', methods=['POST'])
+@login_required
+def record_payment():
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    fee_id = request.form.get('fee_id')
+    payment_amount = float(request.form.get('payment_amount', 0))
+    payment_method = request.form.get('payment_method', 'Cash')
+    transaction_id = request.form.get('transaction_id', '')
+    remarks = request.form.get('remarks', '')
+    
+    fee = Fee.query.get(fee_id)
+    if not fee:
+        flash('Fee record not found!', 'danger')
+        return redirect(url_for('admin_manage_fees'))
+    
+    if payment_amount <= 0:
+        flash('Payment amount must be greater than zero.', 'danger')
+        return redirect(url_for('admin_manage_fees'))
+    
+    fee.paid_amount += payment_amount
+    fee.status = 'Paid' if fee.paid_amount >= fee.amount else 'Partial'
+    fee.payment_date = datetime.utcnow()
+    fee.payment_method = payment_method
+    fee.remarks = remarks
+    if transaction_id:
+        fee.transaction_id = transaction_id
+    
+    db.session.commit()
+    flash('Payment recorded successfully!', 'success')
+    return redirect(url_for('admin_manage_fees'))
+
+@app.route('/admin/student-fee-history/<int:student_id>')
+@login_required
+def student_fee_history(student_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    student = Student.query.get_or_404(student_id)
+    fees = Fee.query.filter_by(student_id=student_id).order_by(Fee.due_date.desc()).all()
+    return render_template('fee_history.html', student=student, fees=fees)
+
+@app.route('/admin/class-fees')
+@login_required
+def manage_class_fees():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    class_fees = ClassFee.query.all()
+    return render_template('manage_class_fees.html', class_fees=class_fees)
+
+@app.route('/admin/class-fee/add', methods=['POST'])
+@login_required
+def add_class_fee():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    class_name = request.form.get('class_name')
+    amount = float(request.form.get('fee_amount'))
+    existing = ClassFee.query.filter_by(class_name=class_name).first()
+    if existing:
+        existing.fee_amount = amount
+        existing.academic_year = ACADEMIC_YEAR
+    else:
+        cf = ClassFee(class_name=class_name, fee_amount=amount, academic_year=ACADEMIC_YEAR)
+        db.session.add(cf)
+    db.session.commit()
+    flash('Class fee updated!', 'success')
+    return redirect(url_for('manage_class_fees'))
+
+# ============================================
 # 7. FACULTY ROUTES
 # ============================================
 
@@ -441,6 +581,17 @@ def enter_marks():
         return redirect(url_for('enter_marks'))
     
     return render_template('marks_entry.html', assignments=assignments)
+
+@app.route('/faculty/timetable')
+@login_required
+def faculty_timetable():
+    if current_user.role != 'faculty':
+        return redirect(url_for('login'))
+    faculty = Faculty.query.filter_by(user_id=current_user.id).first()
+    timetables = Timetable.query.filter_by(faculty_id=faculty.id).all() if faculty else []
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    time_slots = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00']
+    return render_template('faculty_timetable.html', timetables=timetables, days=days, time_slots=time_slots)
 
 # ============================================
 # 8. STUDENT ROUTES
@@ -512,6 +663,17 @@ def view_fees():
         fees = Fee.query.filter_by(student_id=student.id).all()
     return render_template('student_fees.html', fees=fees)
 
+@app.route('/student/timetable')
+@login_required
+def student_timetable():
+    if current_user.role != 'student':
+        return redirect(url_for('login'))
+    student = Student.query.filter_by(user_id=current_user.id).first()
+    timetables = Timetable.query.filter_by(class_name=student.class_name).all() if student else []
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    time_slots = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00']
+    return render_template('student_timetable.html', timetables=timetables, days=days, time_slots=time_slots)
+
 # ============================================
 # 9. QR CODE & ID CARD ROUTES
 # ============================================
@@ -539,7 +701,7 @@ def generate_qr(roll_no):
     return send_file(buf, mimetype='image/png')
 
 # ============================================
-# 10. TIMETABLE ROUTES
+# 10. TIMETABLE ROUTES (ADMIN)
 # ============================================
 
 @app.route('/admin/timetable')
@@ -586,28 +748,6 @@ def delete_timetable(timetable_id):
         db.session.commit()
         return jsonify({'success': True})
     return jsonify({'success': False})
-
-@app.route('/faculty/timetable')
-@login_required
-def faculty_timetable():
-    if current_user.role != 'faculty':
-        return redirect(url_for('login'))
-    faculty = Faculty.query.filter_by(user_id=current_user.id).first()
-    timetables = Timetable.query.filter_by(faculty_id=faculty.id).all() if faculty else []
-    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-    time_slots = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00']
-    return render_template('faculty_timetable.html', timetables=timetables, days=days, time_slots=time_slots)
-
-@app.route('/student/timetable')
-@login_required
-def student_timetable():
-    if current_user.role != 'student':
-        return redirect(url_for('login'))
-    student = Student.query.filter_by(user_id=current_user.id).first()
-    timetables = Timetable.query.filter_by(class_name=student.class_name).all() if student else []
-    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-    time_slots = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00']
-    return render_template('student_timetable.html', timetables=timetables, days=days, time_slots=time_slots)
 
 # ============================================
 # 11. NOTIFICATION ROUTES
@@ -750,117 +890,7 @@ def send_fee_reminder(student_id):
     return redirect(url_for('admin_manage_fees'))
 
 # ============================================
-# 13. ADMIN FEE MANAGEMENT (UPDATED)
-# ============================================
-
-# ============================================
-# FEE MANAGEMENT ROUTES (FULLY WORKING)
-# ============================================
-
-@app.route('/admin/manage-fees')
-@login_required
-def admin_manage_fees():
-    if current_user.role != 'admin':
-        return redirect(url_for('login'))
-    students = Student.query.all()
-    fee_data = []
-    total_fees = total_paid = pending_count = 0
-    
-    for student in students:
-        fee = Fee.query.filter_by(student_id=student.id).order_by(Fee.due_date.desc()).first()
-        if fee:
-            fee_data.append({'student': student, 'fee': fee})
-            total_fees += fee.amount
-            total_paid += fee.paid_amount
-            if fee.status != 'Paid':
-                pending_count += 1
-    
-    total_due = total_fees - total_paid
-    default_message = f"Dear Student, your school fee is pending. Please pay at the earliest. - {SCHOOL_NAME}"
-    
-    return render_template('admin_fees.html', fee_data=fee_data, 
-                          total_fees=total_fees, total_paid=total_paid, 
-                          total_due=total_due, pending_count=pending_count, 
-                          default_message=default_message)
-
-@app.route('/admin/add-fee', methods=['GET', 'POST'])
-@login_required
-def add_fee():
-    if current_user.role != 'admin':
-        return redirect(url_for('login'))
-    
-    if request.method == 'POST':
-        student_id = request.form.get('student_id')
-        amount = float(request.form.get('amount'))
-        due_date = datetime.strptime(request.form.get('due_date'), '%Y-%m-%d').date()
-        
-        # Check if student already has an active fee (optional: allow multiple)
-        new_fee = Fee(
-            student_id=student_id,
-            amount=amount,
-            due_date=due_date,
-            paid_amount=0,
-            status='Pending',
-            payment_date=None,
-            payment_method=None,
-            remarks='Initial fee record'
-        )
-        db.session.add(new_fee)
-        db.session.commit()
-        flash('Fee record added successfully!', 'success')
-        return redirect(url_for('admin_manage_fees'))
-    
-    students = Student.query.all()
-    return render_template('add_fee.html', students=students)
-
-@app.route('/admin/record-payment', methods=['POST'])
-@login_required
-def record_payment():
-    if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    fee_id = request.form.get('fee_id')
-    payment_amount = float(request.form.get('payment_amount', 0))
-    payment_method = request.form.get('payment_method', 'Cash')
-    transaction_id = request.form.get('transaction_id', '')
-    remarks = request.form.get('remarks', '')
-    
-    fee = Fee.query.get(fee_id)
-    if not fee:
-        flash('Fee record not found!', 'danger')
-        return redirect(url_for('admin_manage_fees'))
-    
-    if payment_amount <= 0:
-        flash('Payment amount must be greater than zero.', 'danger')
-        return redirect(url_for('admin_manage_fees'))
-    
-    fee.paid_amount += payment_amount
-    fee.status = 'Paid' if fee.paid_amount >= fee.amount else 'Partial'
-    fee.payment_date = datetime.utcnow()
-    fee.payment_method = payment_method
-    fee.remarks = remarks
-    if transaction_id:
-        fee.transaction_id = transaction_id
-    
-    db.session.commit()
-    flash('Payment recorded successfully!', 'success')
-    return redirect(url_for('admin_manage_fees'))
-
-# ============================================
-# 14. FEE HISTORY ROUTE (NEW)
-# ============================================
-
-@app.route('/admin/student-fee-history/<int:student_id>')
-@login_required
-def student_fee_history(student_id):
-    if current_user.role != 'admin':
-        return redirect(url_for('login'))
-    student = Student.query.get_or_404(student_id)
-    fees = Fee.query.filter_by(student_id=student_id).order_by(Fee.due_date.desc()).all()
-    return render_template('fee_history.html', student=student, fees=fees)
-
-# ============================================
-# 15. PROFILE ROUTES
+# 13. PROFILE ROUTES
 # ============================================
 
 @app.route('/profile/update', methods=['POST'])
@@ -953,7 +983,7 @@ def change_password():
 @login_required
 def delete_profile_pic():
     if current_user.profile_pic and current_user.profile_pic != 'default.png':
-        # Optional: delete from Cloudinary as well
+        # Optionally delete from Cloudinary
         current_user.profile_pic = 'default.png'
         db.session.commit()
         flash('Profile picture removed', 'success')
@@ -965,7 +995,7 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # ============================================
-# 16. API ENDPOINTS & DEBUG
+# 14. API ENDPOINTS & DEBUG
 # ============================================
 
 @app.route('/show-profile-url')
@@ -1080,20 +1110,8 @@ def get_course_details(course_id):
         'subjects': [{'id': s.id, 'name': s.name, 'code': s.code, 'class_name': s.class_name} for s in subjects]
     })
 
-@app.route('/add-fee-columns')
-def add_fee_columns():
-    try:
-        from sqlalchemy import text
-        with db.engine.connect() as conn:
-            conn.execute(text('ALTER TABLE fees ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50)'))
-            conn.execute(text('ALTER TABLE fees ADD COLUMN IF NOT EXISTS remarks TEXT'))
-            conn.commit()
-        return "✅ Columns added successfully! <a href='/admin/manage-fees'>Go to Fee Management</a>"
-    except Exception as e:
-        return f"❌ Error: {str(e)}"
-
 # ============================================
-# 17. MAIN - APPLICATION ENTRY POINT
+# 15. MAIN - APPLICATION ENTRY POINT
 # ============================================
 
 if __name__ == '__main__':
@@ -1137,4 +1155,4 @@ if __name__ == '__main__':
             print("✅ Demo student created: student1 / pass123")
     
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=port)

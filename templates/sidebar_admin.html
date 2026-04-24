@@ -53,3 +53,8 @@
         <i class="bi bi-person"></i> <span>My Profile</span>
     </a>
 </li>
+<li class="nav-item">
+    <a class="nav-link {% if request.endpoint == 'manage_class_fees' %}active{% endif %}" href="{{ url_for('manage_class_fees') }}">
+        <i class="bi bi-cash-stack"></i> <span>Class-wise Fees</span>
+    </a>
+</li>

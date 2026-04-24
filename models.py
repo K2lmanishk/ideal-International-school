@@ -4,6 +4,9 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
+# Define academic year locally to avoid circular import with app.py
+ACADEMIC_YEAR = "2024-2026"
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -118,7 +121,6 @@ class Marks(db.Model):
     max_marks = db.Column(db.Integer)
     obtained_marks = db.Column(db.Float)
 
-# ✅ UPDATED FEE MODEL - Added payment_method and remarks
 class Fee(db.Model):
     __tablename__ = 'fees'
     id = db.Column(db.Integer, primary_key=True)
@@ -129,10 +131,8 @@ class Fee(db.Model):
     status = db.Column(db.String(20), default='Pending')
     transaction_id = db.Column(db.String(100))
     payment_date = db.Column(db.DateTime)
-    
-    # ⬇️⬇️ नए columns ⬇️⬇️
-    payment_method = db.Column(db.String(50))   # Cash, Online, Cheque, DD
-    remarks = db.Column(db.Text)                # Additional notes
+    payment_method = db.Column(db.String(50))
+    remarks = db.Column(db.Text)
 
 class Notice(db.Model):
     __tablename__ = 'notices'
@@ -155,3 +155,11 @@ class Notification(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_read = db.Column(db.Boolean, default=False)
     expiry_date = db.Column(db.Date, nullable=True)
+
+# New: Class-wise fee definition
+class ClassFee(db.Model):
+    __tablename__ = 'class_fees'
+    id = db.Column(db.Integer, primary_key=True)
+    class_name = db.Column(db.String(50), unique=True, nullable=False)
+    fee_amount = db.Column(db.Float, nullable=False)
+    academic_year = db.Column(db.String(20), default=ACADEMIC_YEAR)
