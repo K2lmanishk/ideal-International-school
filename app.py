@@ -753,6 +753,10 @@ def send_fee_reminder(student_id):
 # 13. ADMIN FEE MANAGEMENT (UPDATED)
 # ============================================
 
+# ============================================
+# FEE MANAGEMENT ROUTES (FULLY WORKING)
+# ============================================
+
 @app.route('/admin/manage-fees')
 @login_required
 def admin_manage_fees():
@@ -774,7 +778,40 @@ def admin_manage_fees():
     total_due = total_fees - total_paid
     default_message = f"Dear Student, your school fee is pending. Please pay at the earliest. - {SCHOOL_NAME}"
     
-    return render_template('admin_fees.html', fee_data=fee_data, total_fees=total_fees, total_paid=total_paid, total_due=total_due, pending_count=pending_count, default_message=default_message)
+    return render_template('admin_fees.html', fee_data=fee_data, 
+                          total_fees=total_fees, total_paid=total_paid, 
+                          total_due=total_due, pending_count=pending_count, 
+                          default_message=default_message)
+
+@app.route('/admin/add-fee', methods=['GET', 'POST'])
+@login_required
+def add_fee():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        student_id = request.form.get('student_id')
+        amount = float(request.form.get('amount'))
+        due_date = datetime.strptime(request.form.get('due_date'), '%Y-%m-%d').date()
+        
+        # Check if student already has an active fee (optional: allow multiple)
+        new_fee = Fee(
+            student_id=student_id,
+            amount=amount,
+            due_date=due_date,
+            paid_amount=0,
+            status='Pending',
+            payment_date=None,
+            payment_method=None,
+            remarks='Initial fee record'
+        )
+        db.session.add(new_fee)
+        db.session.commit()
+        flash('Fee record added successfully!', 'success')
+        return redirect(url_for('admin_manage_fees'))
+    
+    students = Student.query.all()
+    return render_template('add_fee.html', students=students)
 
 @app.route('/admin/record-payment', methods=['POST'])
 @login_required

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mt-4">
+    <i class="bi bi-plus-circle me-2"></i>Add New Fee Record
+</h1>
+<ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('admin_manage_fees') }}">Fee Management</a></li>
+    <li class="breadcrumb-item active">Add Fee</li>
+</ol>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <i class="bi bi-cash-stack me-2"></i>Create Fee for Student
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">Student <span class="text-danger">*</span></label>
+                <select class="form-select" name="student_id" required>
+                    <option value="">Select Student</option>
+                    {% for student in students %}
+                    <option value="{{ student.id }}">{{ student.user.full_name }} ({{ student.roll_no }}) - {{ student.class_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Fee Amount (₹) <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" name="amount" step="0.01" min="1" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Due Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" name="due_date" required>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-2"></i>Add Fee Record
+            </button>
+            <a href="{{ url_for('admin_manage_fees') }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

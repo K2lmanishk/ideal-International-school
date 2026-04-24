@@ -49,9 +49,11 @@
     </div>
 </div>
 
-<!-- Bulk SMS Button -->
 <div class="row mb-3">
     <div class="col-12">
+        <a href="{{ url_for('add_fee') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>Add New Fee
+        </a>
         <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#bulkSMSModal">
             <i class="bi bi-send-fill me-2"></i>Send Bulk SMS to Due Students
         </button>
@@ -61,7 +63,6 @@
     </div>
 </div>
 
-<!-- Fee Records Table -->
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">
         <i class="bi bi-table me-2"></i>Student Fee Records
@@ -131,14 +132,11 @@
                                     <i class="bi bi-cash"></i>
                                 </button>
                                 
-                                <!-- Uncomment below if you have created the fee history route -->
-                                <!--
                                 <button class="btn btn-sm btn-info" 
                                         onclick="viewFeeHistory({{ item.student.id }})"
                                         title="View History">
                                     <i class="bi bi-eye"></i>
                                 </button>
-                                -->
                             </div>
                         </td>
                     </tr>
@@ -250,18 +248,16 @@
 </div>
 
 <script>
-// Search functionality
+// Search
 document.getElementById('searchInput').addEventListener('keyup', function() {
     var searchTerm = this.value.toLowerCase();
     var rows = document.querySelectorAll('#feeTable tbody tr');
-    
     rows.forEach(function(row) {
-        var text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
+        row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
     });
 });
 
-// Character counter for SMS
+// SMS character counter
 var textarea = document.querySelector('textarea[name="message"]');
 var charCount = document.getElementById('charCount');
 if (textarea) {
@@ -271,13 +267,12 @@ if (textarea) {
     charCount.textContent = textarea.value.length;
 }
 
-// Open record payment modal using data attributes from row
+// Open payment modal using row data attributes
 function openRecordPaymentModal(btn) {
     var row = btn.closest('tr');
     if (!row) return;
-    
-    var studentName = row.getAttribute('data-student-name') || 'Student';
     var feeId = row.getAttribute('data-fee-id');
+    var studentName = row.getAttribute('data-student-name');
     var total = parseFloat(row.getAttribute('data-total') || 0);
     var paid = parseFloat(row.getAttribute('data-paid') || 0);
     var due = parseFloat(row.getAttribute('data-due') || (total - paid));
@@ -290,43 +285,11 @@ function openRecordPaymentModal(btn) {
     document.getElementById('paymentAmount').max = due;
     document.getElementById('paymentAmount').value = due;
     
-    var modal = new bootstrap.Modal(document.getElementById('recordPaymentModal'));
-    modal.show();
+    new bootstrap.Modal(document.getElementById('recordPaymentModal')).show();
 }
 
-// View fee history (optional – make sure the route exists)
 function viewFeeHistory(studentId) {
     window.location.href = '/admin/student-fee-history/' + studentId;
-}
-
-// Show toast notification
-function showToast(message, type) {
-    var toastContainer = document.querySelector('.toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-        document.body.appendChild(toastContainer);
-    }
-    
-    var icon = 'info-circle';
-    if (type === 'success') icon = 'check-circle';
-    else if (type === 'danger') icon = 'exclamation-circle';
-    else if (type === 'warning') icon = 'exclamation-triangle';
-    
-    var toastEl = document.createElement('div');
-    toastEl.className = 'toast align-items-center text-white bg-' + type + ' border-0';
-    toastEl.innerHTML = '<div class="d-flex">' +
-        '<div class="toast-body"><i class="bi bi-' + icon + ' me-2"></i>' + message + '</div>' +
-        '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>' +
-        '</div>';
-    
-    toastContainer.appendChild(toastEl);
-    var toast = new bootstrap.Toast(toastEl);
-    toast.show();
-    
-    toastEl.addEventListener('hidden.bs.toast', function() {
-        toastEl.remove();
-    });
 }
 </script>
 {% endblock %}
