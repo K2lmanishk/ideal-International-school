@@ -500,17 +500,36 @@ def manage_class_fees():
 def add_class_fee():
     if current_user.role != 'admin':
         return redirect(url_for('login'))
+    
     class_name = request.form.get('class_name')
-    amount = float(request.form.get('fee_amount'))
-    existing = ClassFee.query.filter_by(class_name=class_name).first()
-    if existing:
-        existing.fee_amount = amount
-        existing.academic_year = ACADEMIC_YEAR
-    else:
-        cf = ClassFee(class_name=class_name, fee_amount=amount, academic_year=ACADEMIC_YEAR)
-        db.session.add(cf)
-    db.session.commit()
-    flash('Class fee updated!', 'success')
+    amount_str = request.form.get('fee_amount')
+    
+    if not class_name or not amount_str:
+        flash('Class name and fee amount required.', 'danger')
+        return redirect(url_for('manage_class_fees'))
+    
+    try:
+        amount = float(amount_str)
+    except:
+        flash('Invalid amount.', 'danger')
+        return redirect(url_for('manage_class_fees'))
+    
+    try:
+        existing = ClassFee.query.filter_by(class_name=class_name).first()
+        if existing:
+            existing.fee_amount = amount
+            existing.academic_year = ACADEMIC_YEAR
+            db.session.commit()
+            flash(f'Updated fee for {class_name} to ₹{amount:.2f}', 'success')
+        else:
+            cf = ClassFee(class_name=class_name, fee_amount=amount, academic_year=ACADEMIC_YEAR)
+            db.session.add(cf)
+            db.session.commit()
+            flash(f'Added fee for {class_name}: ₹{amount:.2f}', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Database error: {str(e)}', 'danger')
+    
     return redirect(url_for('manage_class_fees'))
 
 # ============================================
@@ -1110,6 +1129,17 @@ def get_course_details(course_id):
         'subjects': [{'id': s.id, 'name': s.name, 'code': s.code, 'class_name': s.class_name} for s in subjects]
     })
 
+@app.route('/debug-class-fees')
+def debug_class_fees():
+    from models import ClassFee
+    records = ClassFee.query.all()
+    if not records:
+        return "❌ class_fees table is empty."
+    html = "<h3>Records in class_fees:</h3><ul>"
+    for r in records:
+        html += f"<li>{r.class_name} → ₹{r.fee_amount}</li>"
+    html += "</ul>"
+    return html
 
 
 # ============================================
