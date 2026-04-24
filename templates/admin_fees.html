@@ -77,7 +77,7 @@
                         <th>Roll No</th>
                         <th>Student Name</th>
                         <th>Course</th>
-                        <th>Semester</th>
+                        <th>Class</th>
                         <th>Phone</th>
                         <th>Total Fee</th>
                         <th>Paid</th>
@@ -89,11 +89,16 @@
                 </thead>
                 <tbody>
                     {% for item in fee_data %}
-                    <tr>
+                    <tr data-student-id="{{ item.student.id }}"
+                        data-fee-id="{{ item.fee.id }}"
+                        data-student-name="{{ item.student.user.full_name }}"
+                        data-total="{{ item.fee.amount }}"
+                        data-paid="{{ item.fee.paid_amount }}"
+                        data-due="{{ item.fee.amount - item.fee.paid_amount }}">
                         <td>{{ item.student.roll_no }}</td>
                         <td>{{ item.student.user.full_name }}</td>
                         <td>{{ item.student.course.name if item.student.course else 'N/A' }}</td>
-                        <td>{{ item.student.semester }}</td>
+                        <td>{{ item.student.class_name or 'N/A' }}</td>
                         <td>{{ item.student.phone or 'N/A' }}</td>
                         <td>₹{{ "%.2f"|format(item.fee.amount) }}</td>
                         <td>₹{{ "%.2f"|format(item.fee.paid_amount) }}</td>
@@ -105,9 +110,6 @@
                         </td>
                         <td>{{ item.fee.due_date.strftime('%Y-%m-%d') if item.fee.due_date else 'N/A' }}</td>
                         <td>
-                            <!-- ============================================ -->
-                            <!-- ACTION BUTTONS - YAHAN HAI SEND REMINDER -->
-                            <!-- ============================================ -->
                             <div class="btn-group" role="group">
                                 {% if item.fee.status != 'Paid' and item.student.phone %}
                                 <a href="{{ url_for('send_fee_reminder', student_id=item.student.id) }}" 
@@ -124,18 +126,20 @@
                                 {% endif %}
                                 
                                 <button class="btn btn-sm btn-success" 
-                                        onclick="openRecordPaymentModal({{ item.student.id }}, {{ item.fee.id }}, {{ item.fee.amount }}, {{ item.fee.paid_amount }})"
+                                        onclick="openRecordPaymentModal(this)"
                                         title="Record Payment">
                                     <i class="bi bi-cash"></i>
                                 </button>
                                 
+                                <!-- Uncomment below if you have created the fee history route -->
+                                <!--
                                 <button class="btn btn-sm btn-info" 
                                         onclick="viewFeeHistory({{ item.student.id }})"
                                         title="View History">
                                     <i class="bi bi-eye"></i>
                                 </button>
+                                -->
                             </div>
-                            <!-- ============================================ -->
                         </td>
                     </tr>
                     {% endfor %}
@@ -267,32 +271,30 @@ if (textarea) {
     charCount.textContent = textarea.value.length;
 }
 
-// Open record payment modal
-function openRecordPaymentModal(studentId, feeId, totalAmount, paidAmount) {
-    // Find the row to get student name
-    var rows = document.querySelectorAll('#feeTable tbody tr');
-    var studentName = '';
-    rows.forEach(function(row) {
-        if (row.innerHTML.includes('student_id') || true) {
-            studentName = row.cells[1].textContent;
-        }
-    });
+// Open record payment modal using data attributes from row
+function openRecordPaymentModal(btn) {
+    var row = btn.closest('tr');
+    if (!row) return;
     
-    var dueAmount = totalAmount - paidAmount;
+    var studentName = row.getAttribute('data-student-name') || 'Student';
+    var feeId = row.getAttribute('data-fee-id');
+    var total = parseFloat(row.getAttribute('data-total') || 0);
+    var paid = parseFloat(row.getAttribute('data-paid') || 0);
+    var due = parseFloat(row.getAttribute('data-due') || (total - paid));
     
     document.getElementById('paymentFeeId').value = feeId;
-    document.getElementById('paymentStudentName').value = studentName || 'Student';
-    document.getElementById('paymentTotalAmount').value = '₹' + totalAmount.toFixed(2);
-    document.getElementById('paymentAlreadyPaid').value = '₹' + paidAmount.toFixed(2);
-    document.getElementById('paymentDueAmount').value = '₹' + dueAmount.toFixed(2);
-    document.getElementById('paymentAmount').max = dueAmount;
-    document.getElementById('paymentAmount').value = dueAmount;
+    document.getElementById('paymentStudentName').value = studentName;
+    document.getElementById('paymentTotalAmount').value = '₹' + total.toFixed(2);
+    document.getElementById('paymentAlreadyPaid').value = '₹' + paid.toFixed(2);
+    document.getElementById('paymentDueAmount').value = '₹' + due.toFixed(2);
+    document.getElementById('paymentAmount').max = due;
+    document.getElementById('paymentAmount').value = due;
     
     var modal = new bootstrap.Modal(document.getElementById('recordPaymentModal'));
     modal.show();
 }
 
-// View fee history
+// View fee history (optional – make sure the route exists)
 function viewFeeHistory(studentId) {
     window.location.href = '/admin/student-fee-history/' + studentId;
 }

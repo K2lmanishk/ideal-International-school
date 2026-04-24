@@ -21,15 +21,12 @@ import cloudinary.api
 
 # Cloudinary Configuration (Render Environment Variables से लिया जाएगा)
 cloudinary.config(
-   cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
     api_key=os.environ.get('CLOUDINARY_API_KEY'),
     api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
     secure=True
 )
 
-
-
-# Configuration with environment variable fallback
 # Configuration with environment variable fallback
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'c63fe9c3a2f56ac7c926e52ac81330559a9ed36b38ee4c4b0180bc66a83279fa')
@@ -43,9 +40,9 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # ✅ Twilio के लिए सही एनवायरनमेंट वेरिएबल नाम
-    TWILIO_ACCOUNT_SID = os.environ.get('ACf38ee849bde7220520912321ef63b9f6', '')
-    TWILIO_AUTH_TOKEN = os.environ.get('fde437e10e1ab7fa1600e10ae3193363', '')
-    TWILIO_PHONE_NUMBER = os.environ.get('+16624958018', '')
+    TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
+    TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
+    TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
 
 # SCHOOL CONFIGURATION
 SCHOOL_NAME = "Ideal International School"
@@ -753,7 +750,7 @@ def send_fee_reminder(student_id):
     return redirect(url_for('admin_manage_fees'))
 
 # ============================================
-# 13. ADMIN FEE MANAGEMENT
+# 13. ADMIN FEE MANAGEMENT (UPDATED)
 # ============================================
 
 @app.route('/admin/manage-fees')
@@ -787,29 +784,56 @@ def record_payment():
     
     fee_id = request.form.get('fee_id')
     payment_amount = float(request.form.get('payment_amount', 0))
+    payment_method = request.form.get('payment_method', 'Cash')
+    transaction_id = request.form.get('transaction_id', '')
+    remarks = request.form.get('remarks', '')
     
     fee = Fee.query.get(fee_id)
-    if fee:
-        fee.paid_amount += payment_amount
-        fee.status = 'Paid' if fee.paid_amount >= fee.amount else 'Partial'
-        fee.payment_date = datetime.utcnow()
-        db.session.commit()
-        flash('Payment recorded!', 'success')
+    if not fee:
+        flash('Fee record not found!', 'danger')
+        return redirect(url_for('admin_manage_fees'))
+    
+    if payment_amount <= 0:
+        flash('Payment amount must be greater than zero.', 'danger')
+        return redirect(url_for('admin_manage_fees'))
+    
+    fee.paid_amount += payment_amount
+    fee.status = 'Paid' if fee.paid_amount >= fee.amount else 'Partial'
+    fee.payment_date = datetime.utcnow()
+    fee.payment_method = payment_method
+    fee.remarks = remarks
+    if transaction_id:
+        fee.transaction_id = transaction_id
+    
+    db.session.commit()
+    flash('Payment recorded successfully!', 'success')
     return redirect(url_for('admin_manage_fees'))
 
 # ============================================
-# 14. PROFILE ROUTES
+# 14. FEE HISTORY ROUTE (NEW)
 # ============================================
+
+@app.route('/admin/student-fee-history/<int:student_id>')
+@login_required
+def student_fee_history(student_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    student = Student.query.get_or_404(student_id)
+    fees = Fee.query.filter_by(student_id=student_id).order_by(Fee.due_date.desc()).all()
+    return render_template('fee_history.html', student=student, fees=fees)
+
+# ============================================
+# 15. PROFILE ROUTES
+# ============================================
+
 @app.route('/profile/update', methods=['POST'])
 @login_required
 def update_profile():
     user = current_user
     data = request.form
     
-    # मूल जानकारी अपडेट करें
     user.full_name = data.get('full_name', user.full_name)
     
-    # भूमिका के अनुसार अतिरिक्त जानकारी अपडेट करें
     if user.role == 'student':
         student = Student.query.filter_by(user_id=user.id).first()
         if student:
@@ -849,24 +873,17 @@ def upload_profile_pic():
     
     if file and allowed_file(file.filename):
         try:
-            # Cloudinary पर अपलोड करें
             upload_result = cloudinary.uploader.upload(
                 file,
-                folder="ideal_school_profiles", # सभी फ़ोटो इस फ़ोल्डर में व्यवस्थित होंगी
+                folder="ideal_school_profiles",
                 public_id=f"user_{current_user.id}",
                 overwrite=True,
                 resource_type="image"
             )
-            
-            # Cloudinary द्वारा दिया गया सुरक्षित URL प्राप्त करें
             profile_pic_url = upload_result['secure_url']
-            
-            # डेटाबेस में केवल यह URL सेव करें
             current_user.profile_pic = profile_pic_url
             db.session.commit()
-            
             flash('Profile picture updated successfully!', 'success')
-            
         except Exception as e:
             db.session.rollback()
             flash(f'Error uploading to Cloudinary: {str(e)}', 'danger')
@@ -895,18 +912,11 @@ def change_password():
     
     return redirect(url_for('profile'))
 
-# ============================================
-# 15. PROFILE PHOTO UPLOAD
-# ============================================
-
-
 @app.route('/delete_profile_pic', methods=['POST'])
 @login_required
 def delete_profile_pic():
     if current_user.profile_pic and current_user.profile_pic != 'default.png':
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], current_user.profile_pic)
-        if os.path.exists(filepath):
-            os.remove(filepath)
+        # Optional: delete from Cloudinary as well
         current_user.profile_pic = 'default.png'
         db.session.commit()
         flash('Profile picture removed', 'success')
@@ -918,8 +928,9 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # ============================================
-# 16. API ENDPOINTS
+# 16. API ENDPOINTS & DEBUG
 # ============================================
+
 @app.route('/show-profile-url')
 @login_required
 def show_profile_url():
@@ -934,7 +945,6 @@ def show_profile_url():
 @app.route('/debug-db')
 def debug_db():
     db_url = app.config.get('SQLALCHEMY_DATABASE_URI', 'Not Set')
-    # सुरक्षा के लिए पासवर्ड छिपाएँ
     if 'postgresql://' in db_url:
         parts = db_url.split('@')
         if len(parts) > 1:
@@ -957,6 +967,7 @@ def debug_db_engine():
         """
     except Exception as e:
         return f"❌ Error: {str(e)}"
+
 @app.route('/setup-db')
 def setup_db():
     try:
@@ -965,7 +976,6 @@ def setup_db():
         from models import User, Course, Faculty, Student, Fee
         from werkzeug.security import generate_password_hash
         
-        # Create admin
         if not User.query.filter_by(username='admin').first():
             admin = User(
                 username='admin',
@@ -976,8 +986,7 @@ def setup_db():
             )
             db.session.add(admin)
             db.session.commit()
-            
-        # Create demo courses
+        
         if Course.query.count() == 0:
             courses = [
                 Course(name='Science', code='SCI', description='Science Stream'),
@@ -986,18 +995,17 @@ def setup_db():
             ]
             db.session.add_all(courses)
             db.session.commit()
-            
+        
         return "✅ Database setup complete!<br><br>Admin: admin / admin123<br><br><a href='/login'>Go to Login</a>"
     except Exception as e:
         return f"❌ Error: {str(e)}"
-    
-# Database call tracking
+
+# Database call tracking (for safety)
 original_create_all = db.create_all
 original_drop_all = db.drop_all
 
 def tracked_create_all(*args, **kwargs):
     app.logger.error("🚨🚨🚨 FATAL: db.create_all() was called! This should NEVER happen in production.")
-    # यह पता लगाने के लिए कि किसने बुलाया, स्टैक ट्रेस प्रिंट करें
     import traceback
     app.logger.error(traceback.format_stack())
     return original_create_all(*args, **kwargs)
@@ -1020,6 +1028,33 @@ def get_students_by_subject(subject_id):
     students = Student.query.filter_by(class_name=subject.class_name).all()
     return jsonify([{'id': s.id, 'roll_no': s.roll_no, 'name': s.user.full_name} for s in students])
 
+@app.route('/api/get_course_details/<int:course_id>')
+@login_required
+def get_course_details(course_id):
+    course = Course.query.get(course_id)
+    if not course:
+        return jsonify({'error': 'Course not found'}), 404
+    subjects = Subject.query.filter_by(course_id=course_id).all()
+    return jsonify({
+        'id': course.id,
+        'name': course.name,
+        'code': course.code,
+        'description': course.description,
+        'subjects': [{'id': s.id, 'name': s.name, 'code': s.code, 'class_name': s.class_name} for s in subjects]
+    })
+
+@app.route('/add-fee-columns')
+def add_fee_columns():
+    try:
+        from sqlalchemy import text
+        with db.engine.connect() as conn:
+            conn.execute(text('ALTER TABLE fees ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50)'))
+            conn.execute(text('ALTER TABLE fees ADD COLUMN IF NOT EXISTS remarks TEXT'))
+            conn.commit()
+        return "✅ Columns added successfully! <a href='/admin/manage-fees'>Go to Fee Management</a>"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
 # ============================================
 # 17. MAIN - APPLICATION ENTRY POINT
 # ============================================
@@ -1035,7 +1070,6 @@ if __name__ == '__main__':
             db.session.commit()
             print("✅ Default admin created: admin / admin123")
         
-        # Create default courses (classes)
         if Course.query.count() == 0:
             default_courses = [
                 Course(name='Science', code='SCI', description='Science Stream with PCM/PCB'),
@@ -1065,7 +1099,5 @@ if __name__ == '__main__':
             db.session.commit()
             print("✅ Demo student created: student1 / pass123")
     
-    # ✅ PORT ENVIRONMENT VARIABLE SE LO
-    import os
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=False, host='0.0.0.0', port=5000)

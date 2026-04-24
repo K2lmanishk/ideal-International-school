@@ -9,7 +9,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(512))   # या db.Column(db.Text)
+    password_hash = db.Column(db.String(512))
     role = db.Column(db.String(20), nullable=False)
     full_name = db.Column(db.String(100))
     profile_pic = db.Column(db.String(200), default='default.png')
@@ -26,7 +26,7 @@ class Student(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
     roll_no = db.Column(db.String(20), unique=True, nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('courses.id'))
-    class_name = db.Column(db.String(50))  # Class 1 to Class 12
+    class_name = db.Column(db.String(50))
     dob = db.Column(db.Date)
     phone = db.Column(db.String(15))
     address = db.Column(db.Text)
@@ -118,6 +118,7 @@ class Marks(db.Model):
     max_marks = db.Column(db.Integer)
     obtained_marks = db.Column(db.Float)
 
+# ✅ UPDATED FEE MODEL - Added payment_method and remarks
 class Fee(db.Model):
     __tablename__ = 'fees'
     id = db.Column(db.Integer, primary_key=True)
@@ -128,6 +129,10 @@ class Fee(db.Model):
     status = db.Column(db.String(20), default='Pending')
     transaction_id = db.Column(db.String(100))
     payment_date = db.Column(db.DateTime)
+    
+    # ⬇️⬇️ नए columns ⬇️⬇️
+    payment_method = db.Column(db.String(50))   # Cash, Online, Cheque, DD
+    remarks = db.Column(db.Text)                # Additional notes
 
 class Notice(db.Model):
     __tablename__ = 'notices'
