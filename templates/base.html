@@ -13,6 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
+    <!-- Scripts (ApexCharts, GSAP, particles, confetti) – all optional but safe -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
@@ -22,20 +23,281 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     <style>
-        /* Mobile Sidebar Styles */
+        /* ---------- GLOBAL VARIABLES (fallback if style.css missing) ---------- */
+        :root {
+            --sidebar-bg: rgba(255,255,255,0.92);
+            --navbar-bg: rgba(255,255,255,0.85);
+            --border-light: rgba(0,0,0,0.08);
+            --text-secondary: #4a5568;
+            --card-bg: rgba(255,255,255,0.7);
+            --sidebar-hover: rgba(102,126,234,0.1);
+        }
+        [data-bs-theme="dark"] {
+            --sidebar-bg: rgba(20,25,40,0.95);
+            --navbar-bg: rgba(15,23,42,0.9);
+            --border-light: rgba(255,255,255,0.1);
+            --text-secondary: #cbd5e1;
+            --card-bg: rgba(30,41,59,0.7);
+            --sidebar-hover: rgba(102,126,234,0.2);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            transition: background 0.3s, color 0.3s;
+        }
+        [data-bs-theme="dark"] body {
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        
+        /* ---------- GLASS CLASSES (with fallback) ---------- */
+        .glass-navbar {
+            background: var(--navbar-bg) !important;
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-light);
+        }
+        .glass-sidebar {
+            background: var(--sidebar-bg) !important;
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border-light);
+        }
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+        }
+        
+        /* ---------- LOGO & BRAND ---------- */
+        .brand-text {
+            font-weight: 800;
+            font-size: 1.4rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .brand-highlight {
+            background: linear-gradient(135deg, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        
+        /* ---------- SEARCH BAR ---------- */
+        .search-wrapper {
+            position: relative;
+        }
+        .search-input {
+            padding: 0.5rem 2.2rem 0.5rem 2.5rem;
+            border-radius: 40px;
+            border: 1px solid var(--border-light);
+            background: rgba(255,255,255,0.8);
+            width: 220px;
+            transition: 0.2s;
+        }
+        .search-input:focus {
+            width: 280px;
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102,126,234,0.2);
+        }
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+        .search-shortcut {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7rem;
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 8px;
+        }
+        
+        /* ---------- THEME TOGGLE ---------- */
+        .theme-toggle-wrapper {
+            display: inline-block;
+        }
+        .theme-toggle-btn {
+            width: 56px;
+            height: 28px;
+            border-radius: 30px;
+            background: #e2e8f0;
+            border: none;
+            position: relative;
+            cursor: pointer;
+        }
+        .theme-toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: white;
+            transition: 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        [data-bs-theme="dark"] .theme-toggle-slider {
+            left: 31px;
+            background: #facc15;
+        }
+        .theme-icon-light, .theme-icon-dark {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            pointer-events: none;
+        }
+        .theme-icon-light {
+            left: 8px;
+            color: #f59e0b;
+            display: inline-block;
+        }
+        .theme-icon-dark {
+            right: 8px;
+            color: #94a3b8;
+            display: none;
+        }
+        [data-bs-theme="dark"] .theme-icon-light {
+            display: none;
+        }
+        [data-bs-theme="dark"] .theme-icon-dark {
+            display: inline-block;
+        }
+        
+        /* ---------- AVATAR ---------- */
+        .avatar-wrapper {
+            position: relative;
+        }
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            overflow: hidden;
+        }
+        .avatar-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .avatar-glow {
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            opacity: 0.4;
+            filter: blur(6px);
+            z-index: -1;
+        }
+        
+        /* ---------- NOTIFICATION BELL ---------- */
+        .notification-bell {
+            position: relative;
+        }
+        .notification-badge {
+            position: absolute;
+            top: -6px;
+            right: -8px;
+            background: #ef4444;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 20px;
+        }
+        
+        /* ---------- SIDEBAR (Desktop & Mobile) ---------- */
+        .sidebar {
+            transition: left 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+        .sidebar-content {
+            padding: 1rem 0;
+        }
+        .school-header, .sidebar-profile {
+            text-align: center;
+            padding: 0 1rem;
+        }
+        .school-name {
+            font-weight: 700;
+        }
+        .sidebar-avatar {
+            position: relative;
+            display: inline-block;
+        }
+        .avatar-circle.large {
+            width: 80px;
+            height: 80px;
+            font-size: 2rem;
+        }
+        .avatar-ring {
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid #667eea;
+            animation: spin 3s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .sidebar-nav .nav-link {
+            color: var(--text-secondary);
+            padding: 12px 20px;
+            border-radius: 14px;
+            margin: 4px 8px;
+            transition: all 0.2s;
+        }
+        .sidebar-nav .nav-link i {
+            margin-right: 12px;
+            width: 24px;
+            text-align: center;
+        }
+        .sidebar-nav .nav-link:hover {
+            background: var(--sidebar-hover);
+            transform: translateX(6px);
+        }
+        .sidebar-nav .nav-link.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .sidebar-footer {
+            border-top: 1px solid var(--border-light);
+            padding: 1rem;
+            margin-top: 1rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-dot.online {
+            background: #22c55e;
+            box-shadow: 0 0 5px #22c55e;
+        }
+        
+        /* ---------- MOBILE SIDEBAR (offcanvas) ---------- */
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
                 top: 0;
-                left: -280px;
+                left: -300px;
                 width: 280px;
                 height: 100vh;
                 z-index: 1050;
-                transition: left 0.3s ease;
                 overflow-y: auto;
-                background: var(--sidebar-bg);
-                backdrop-filter: blur(20px);
-                box-shadow: 2px 0 20px rgba(0,0,0,0.2);
             }
             .sidebar.show {
                 left: 0;
@@ -47,32 +309,101 @@
                 width: 100%;
                 height: 100%;
                 background: rgba(0,0,0,0.5);
+                backdrop-filter: blur(3px);
                 z-index: 1040;
                 display: none;
             }
             .sidebar-overlay.show {
                 display: block;
             }
+            .mobile-bottom-nav {
+                display: flex;
+            }
             .main-content {
                 padding: 12px !important;
             }
+            .live-clock-wrapper, .user-name, .role-badge {
+                display: none;
+            }
         }
         
-        /* Desktop sidebar - normal */
+        /* ---------- DESKTOP SIDEBAR (sticky) ---------- */
         @media (min-width: 769px) {
             .sidebar {
                 position: sticky;
                 top: 70px;
                 height: calc(100vh - 70px);
             }
-            .sidebar-overlay {
+            .sidebar-overlay, .mobile-bottom-nav {
+                display: none;
+            }
+            .mobile-menu-btn {
                 display: none;
             }
         }
         
-        /* Ensure content shifts properly */
+        /* ---------- BOTTOM NAVIGATION (Mobile) ---------- */
+        .mobile-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--navbar-bg);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-light);
+            z-index: 1040;
+            padding: 8px 0;
+        }
+        .bottom-nav-items {
+            display: flex;
+            justify-content: space-around;
+        }
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            padding: 6px 12px;
+            border-radius: 16px;
+            transition: 0.2s;
+        }
+        .bottom-nav-item i {
+            font-size: 1.5rem;
+            margin-bottom: 2px;
+        }
+        .bottom-nav-item.active {
+            color: #667eea;
+            background: var(--sidebar-hover);
+        }
+        
+        /* ---------- MAIN CONTENT ANIMATIONS ---------- */
         .main-content {
-            transition: margin-left 0.3s ease;
+            animation: fadeInUp 0.5s ease-out;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .glass-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 30px -12px rgba(0,0,0,0.15);
+        }
+        
+        /* ---------- CUSTOM SCROLLBAR ---------- */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e2e8f0;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
         }
     </style>
 </head>
@@ -87,21 +418,21 @@
     <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
     
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg glass-navbar">
+    <nav class="navbar navbar-expand-lg glass-navbar fixed-top">
         <div class="container-fluid">
-            <button class="btn btn-link text-white d-md-none" type="button" id="sidebarToggleBtn">
-                <i class="bi bi-list" style="font-size: 1.5rem;"></i>
+            <button class="btn btn-link text-dark d-md-none p-0 me-2" type="button" id="sidebarToggleBtn">
+                <i class="bi bi-list fs-1" style="color:#667eea;"></i>
             </button>
             
             <a class="navbar-brand animated-brand" href="#">
-                <div class="logo-container">
-                    <i class="bi bi-trophy-fill"></i>
-                    <span class="brand-text">Ideal<span class="brand-highlight">International School</span></span>
+                <div class="logo-container d-flex align-items-center">
+                    <i class="bi bi-trophy-fill fs-3 me-1" style="color:#667eea;"></i>
+                    <span class="brand-text">Ideal<span class="brand-highlight">International</span></span>
                 </div>
             </a>
             
             <div class="live-clock-wrapper d-none d-md-block">
-                <div class="live-clock">
+                <div class="live-clock d-flex align-items-center gap-1">
                     <i class="bi bi-clock"></i>
                     <span id="liveClock">00:00:00</span>
                 </div>
@@ -114,7 +445,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <!-- Theme Toggle -->
-                    <li class="nav-item me-3">
+                    <li class="nav-item me-2 me-md-3">
                         <div class="theme-toggle-wrapper">
                             <button class="theme-toggle-btn" onclick="toggleTheme()">
                                 <i class="bi bi-sun-fill theme-icon-light"></i>
@@ -124,7 +455,7 @@
                         </div>
                     </li>
                     
-                    <!-- Search -->
+                    <!-- Search (desktop) -->
                     <li class="nav-item me-3 d-none d-lg-block">
                         <div class="search-wrapper">
                             <i class="bi bi-search search-icon"></i>
@@ -134,22 +465,23 @@
                     </li>
                     
                     <!-- Notifications -->
-                    <li class="nav-item dropdown me-3">
-                        <a class="nav-link position-relative notification-bell" href="#" id="notificationDropdownBtn" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-bell-fill"></i>
+                    <li class="nav-item dropdown me-2 me-md-3">
+                        <a class="nav-link position-relative notification-bell p-0" href="#" id="notificationDropdownBtn" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-bell-fill fs-5"></i>
                             <span class="notification-badge" id="notificationCount">0</span>
-                            <span class="notification-pulse"></span>
                         </a>
-                        <div class="dropdown-menu dropdown-menu-end glass-dropdown notification-dropdown" id="notificationDropdown">
-                            <div class="dropdown-header">
+                        <div class="dropdown-menu dropdown-menu-end glass-dropdown notification-dropdown shadow-lg border-0" style="width: 320px;">
+                            <div class="dropdown-header border-bottom p-2">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <h6 class="mb-0"><i class="bi bi-bell-fill me-2"></i>Notifications</h6>
-                                    <button class="btn btn-sm btn-link" onclick="markAllNotificationsRead()">Mark all read</button>
+                                    <button class="btn btn-sm btn-link p-0" onclick="markAllNotificationsRead()">Mark all read</button>
                                 </div>
                             </div>
-                            <div id="notificationList" class="notification-list">...</div>
-                            <div class="dropdown-footer">
-                                <a class="dropdown-item text-center" href="{{ url_for('manage_notifications_page') if current_user.role == 'admin' else '#' }}">
+                            <div id="notificationList" class="notification-list" style="max-height: 350px; overflow-y: auto;">
+                                <div class="text-center p-4 text-muted">No notifications</div>
+                            </div>
+                            <div class="dropdown-footer border-top text-center p-2">
+                                <a class="dropdown-item" href="{{ url_for('manage_notifications_page') if current_user.role == 'admin' else '#' }}">
                                     <i class="bi bi-gear-fill me-1"></i>Manage Notifications
                                 </a>
                             </div>
@@ -158,7 +490,7 @@
                     
                     <!-- User Profile -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle user-profile-btn" href="#" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2 p-0" href="#" role="button" data-bs-toggle="dropdown">
                             <div class="avatar-wrapper">
                                 <div class="avatar-circle">
                                     {% if current_user.profile_pic and current_user.profile_pic != 'default.png' %}
@@ -170,9 +502,9 @@
                                 <div class="avatar-glow"></div>
                             </div>
                             <span class="user-name d-none d-md-inline">{{ current_user.full_name }}</span>
-                            <span class="role-badge d-none d-md-inline">{{ current_user.role|capitalize }}</span>
+                            <span class="role-badge d-none d-md-inline badge bg-primary">{{ current_user.role|capitalize }}</span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end glass-dropdown">
+                        <ul class="dropdown-menu dropdown-menu-end shadow">
                             <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="bi bi-person"></i> My Profile</a></li>
                             <li><a class="dropdown-item" href="#" onclick="showKeyboardShortcuts()"><i class="bi bi-keyboard"></i> Shortcuts</a></li>
                             <li><hr class="dropdown-divider"></li>
@@ -183,22 +515,20 @@
             </div>
         </div>
     </nav>
-    {% endif %}
-
+    
     <div class="container-fluid">
         <div class="row">
-            {% if current_user.is_authenticated %}
             <!-- Sidebar -->
             <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block sidebar glass-sidebar">
                 <div class="sidebar-content">
-                    <div class="school-header text-center">
-                        <h6 class="school-name">{{ school_name }}</h6>
-                        <p class="school-address">{{ school_address }}</p>
+                    <div class="school-header text-center mb-3">
+                        <h6 class="school-name fw-bold">{{ school_name }}</h6>
+                        <p class="small text-muted">{{ school_address }}</p>
                     </div>
                     
-                    <div class="sidebar-profile">
-                        <div class="sidebar-avatar">
-                            <div class="avatar-circle large">
+                    <div class="sidebar-profile text-center mb-4">
+                        <div class="sidebar-avatar mb-2">
+                            <div class="avatar-circle large mx-auto">
                                 {% if current_user.profile_pic and current_user.profile_pic != 'default.png' %}
                                 <img src="{{ current_user.profile_pic }}" alt="Profile">
                                 {% else %}
@@ -207,11 +537,10 @@
                             </div>
                             <div class="avatar-ring"></div>
                         </div>
-                        <h6 class="sidebar-name">{{ current_user.full_name }}</h6>
-                        <p class="sidebar-email">{{ current_user.email }}</p>
+                        <h6 class="sidebar-name fw-semibold">{{ current_user.full_name }}</h6>
+                        <p class="small text-muted">{{ current_user.email }}</p>
                         <div class="sidebar-role">
-                            <span class="role-indicator"></span>
-                            {{ current_user.role|capitalize }}
+                            <span class="badge bg-gradient">{{ current_user.role|capitalize }}</span>
                         </div>
                     </div>
                     
@@ -226,42 +555,38 @@
                     </ul>
                     
                     <div class="sidebar-footer">
-                        <div class="status-indicator">
+                        <div class="status-indicator d-flex align-items-center gap-1">
                             <span class="status-dot online"></span>
-                            <span>Online</span>
+                            <span class="small">Online</span>
                         </div>
                         <div class="sidebar-version">
-                            <span class="badge bg-gradient">IIPS v1.0</span>
+                            <span class="badge bg-secondary">v1.0</span>
                         </div>
                     </div>
                 </div>
             </nav>
-            {% endif %}
 
             <!-- Main Content -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
                 <div class="school-header-banner mb-4">
-                    <div class="row align-items-center">
-                        <div class="col-12">
-                            <div class="glass-card p-3">
-                                <div class="d-flex flex-wrap justify-content-between align-items-center">
-                                    <div>
-                                        <h4 class="mb-1">{{ school_name }}</h4>
-                                        <p class="text-muted mb-0 small">{{ school_address }} | {{ school_contact }}</p>
-                                    </div>
-                                    <div class="text-end">
-                                        <span class="badge bg-primary">Academic Year: {{ academic_year }}</span>
-                                    </div>
-                                </div>
+                    <div class="glass-card p-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center">
+                            <div>
+                                <h4 class="mb-1 fw-bold">{{ school_name }}</h4>
+                                <p class="text-muted mb-0 small">{{ school_address }} | {{ school_contact }}</p>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-primary">Academic Year: {{ academic_year }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
                 
+                <!-- Flash Messages -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show custom-alert" role="alert">
+                            <div class="alert alert-{{ category }} alert-dismissible fade show custom-alert glass-card p-3 mb-3" role="alert">
                                 <i class="bi bi-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
                                 {{ message }}
                                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -297,17 +622,18 @@
 
     <!-- Keyboard Shortcuts Modal -->
     <div class="modal fade" id="shortcutsModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content glass-modal">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-keyboard me-2"></i>Keyboard Shortcuts</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <table class="shortcuts-table">
-                        <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Dashboard</td></tr>
-                        <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>Profile</td></tr>
-                        <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Search</td></tr>
+                    <table class="table table-sm">
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>D</kbd></td><td>Dashboard</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>P</kbd></td><td>Profile</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td>Search</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd></td><td>Toggle Theme</td></tr>
                         <tr><td><kbd>Esc</kbd></td><td>Close modal</td></tr>
                     </table>
                 </div>
@@ -318,79 +644,33 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     
-    <style>
-        .mobile-bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--navbar-bg);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid var(--border-light);
-            z-index: 1040;
-            padding: 8px 0;
-        }
-        .bottom-nav-items {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-        }
-        .bottom-nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: var(--text-secondary);
-            font-size: 0.75rem;
-            padding: 8px 16px;
-            border-radius: 12px;
-        }
-        .bottom-nav-item i {
-            font-size: 1.4rem;
-            margin-bottom: 4px;
-        }
-        .bottom-nav-item.active {
-            color: #667eea;
-            background: var(--sidebar-hover);
-        }
-        .school-header-banner .glass-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            border: 1px solid var(--border-light);
-        }
-    </style>
-    
     <script>
         // Sidebar toggle for mobile
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        
         function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
             sidebar.classList.toggle('show');
             overlay.classList.toggle('show');
         }
-        
         function closeSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
             sidebar.classList.remove('show');
             overlay.classList.remove('show');
         }
         
-        // Event listeners
-        document.getElementById('sidebarToggleBtn')?.addEventListener('click', toggleSidebar);
-        document.getElementById('mobileMenuBtn')?.addEventListener('click', function(e) {
+        if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', toggleSidebar);
+        if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', (e) => {
             e.preventDefault();
             toggleSidebar();
         });
-        
-        // Close sidebar when clicking outside on mobile (already handled by overlay)
+        if (overlay) overlay.addEventListener('click', closeSidebar);
         
         // Live clock
         function updateClock() {
-            const now = new Date();
             const clock = document.getElementById('liveClock');
-            if (clock) clock.textContent = now.toLocaleTimeString();
+            if (clock) clock.textContent = new Date().toLocaleTimeString();
         }
         setInterval(updateClock, 1000);
         updateClock();
@@ -398,6 +678,7 @@
         // Theme toggle
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        
         function toggleTheme() {
             const html = document.documentElement;
             const current = html.getAttribute('data-bs-theme');
@@ -406,18 +687,55 @@
             localStorage.setItem('theme', newTheme);
         }
         
+        // Keyboard shortcuts modal
         function showKeyboardShortcuts() {
             new bootstrap.Modal(document.getElementById('shortcutsModal')).show();
         }
         
-        // Active link highlight on mobile
-        document.querySelectorAll('.bottom-nav-item').forEach(item => {
-            if (item.href === window.location.href) {
-                item.classList.add('active');
+        // Active link highlight for bottom nav
+        document.querySelectorAll('.bottom-nav-item, .sidebar-nav .nav-link').forEach(link => {
+            if (link.href === window.location.href) {
+                link.classList.add('active');
             }
         });
+        
+        // Notification badge placeholder
+        function markAllNotificationsRead() {
+            const badge = document.getElementById('notificationCount');
+            if (badge) badge.textContent = '0';
+        }
+        
+        // GSAP animation for main content items (optional, will not error if GSAP fails)
+        if (typeof gsap !== 'undefined') {
+            gsap.from('.main-content .card, .main-content .list-group-item, .main-content .stat-card', {
+                y: 30,
+                opacity: 0,
+                duration: 0.5,
+                stagger: 0.08,
+                ease: 'power2.out'
+            });
+        }
+        
+        // Particles initialization (if the library is loaded and element exists)
+        if (typeof particlesJS !== 'undefined' && document.getElementById('particles-js')) {
+            particlesJS('particles-js', {
+                particles: {
+                    number: { value: 30, density: { enable: true, value_area: 800 } },
+                    color: { value: '#667eea' },
+                    shape: { type: 'circle' },
+                    opacity: { value: 0.3, random: true },
+                    size: { value: 2, random: true },
+                    move: { enable: true, speed: 1, direction: 'none', random: true, out_mode: 'out' }
+                },
+                interactivity: { events: { onhover: { enable: true, mode: 'repulse' } } }
+            });
+        }
     </script>
     
     {% block scripts %}{% endblock %}
+{% else %}
+    <!-- Not logged in -->
+    {% block content %}{% endblock %}
+{% endif %}
 </body>
 </html>
