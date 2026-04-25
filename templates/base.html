@@ -2,14 +2,13 @@
 <html lang="en" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>{% block title %}Ideal International School{% endblock %}</title>
-    <!-- Bootstrap 5 & Icons -->
+    <!-- Bootstrap 5 + Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        /* ---------- GLOBAL ---------- */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
@@ -19,13 +18,12 @@
         [data-bs-theme="dark"] body {
             background: #0a0a0f;
         }
-        /* ---------- GLASS COMPONENTS ---------- */
+        /* Glass components */
         .glass-navbar, .glass-sidebar, .glass-card {
             background: rgba(255,255,255,0.7);
             backdrop-filter: blur(16px);
             border: 1px solid rgba(255,255,255,0.3);
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            transition: background 0.3s;
         }
         [data-bs-theme="dark"] .glass-navbar,
         [data-bs-theme="dark"] .glass-sidebar,
@@ -33,18 +31,10 @@
             background: rgba(20,25,40,0.8);
             border-color: rgba(255,255,255,0.08);
         }
-        .glass-navbar {
-            border-radius: 0 0 20px 20px;
-        }
-        .glass-sidebar {
-            border-radius: 28px;
-            padding: 1rem 0;
-        }
-        .glass-card {
-            border-radius: 24px;
-            padding: 1.2rem;
-        }
-        /* ---------- SIDEBAR (DESKTOP) ---------- */
+        .glass-navbar { border-radius: 0 0 20px 20px; }
+        .glass-sidebar { border-radius: 28px; padding: 1rem 0; }
+        .glass-card { border-radius: 24px; padding: 1.2rem; }
+        /* Sidebar nav */
         .sidebar .nav-link {
             color: #1e293b;
             border-radius: 16px;
@@ -53,14 +43,8 @@
             font-weight: 500;
             transition: all 0.2s;
         }
-        [data-bs-theme="dark"] .sidebar .nav-link {
-            color: #cbd5e1;
-        }
-        .sidebar .nav-link i {
-            margin-right: 14px;
-            width: 24px;
-            font-size: 1.2rem;
-        }
+        [data-bs-theme="dark"] .sidebar .nav-link { color: #cbd5e1; }
+        .sidebar .nav-link i { margin-right: 14px; width: 24px; font-size: 1.2rem; }
         .sidebar .nav-link:hover {
             background: rgba(102,126,234,0.15);
             transform: translateX(6px);
@@ -70,7 +54,7 @@
             color: white;
             box-shadow: 0 8px 20px rgba(102,126,234,0.3);
         }
-        /* ---------- AVATAR ---------- */
+        /* Avatar */
         .avatar {
             width: 42px;
             height: 42px;
@@ -82,15 +66,9 @@
             color: white;
             font-weight: bold;
             font-size: 1.2rem;
-            transition: 0.2s;
         }
-        .avatar-large {
-            width: 85px;
-            height: 85px;
-            font-size: 2rem;
-            margin: 0 auto;
-        }
-        /* ---------- THEME TOGGLE ---------- */
+        .avatar-large { width: 85px; height: 85px; font-size: 2rem; margin: 0 auto; }
+        /* Theme toggle */
         .theme-toggle {
             width: 52px;
             height: 28px;
@@ -99,7 +77,6 @@
             border: none;
             position: relative;
             cursor: pointer;
-            transition: 0.2s;
         }
         .toggle-slider {
             position: absolute;
@@ -110,23 +87,11 @@
             background: white;
             border-radius: 50%;
             transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
         }
-        [data-bs-theme="dark"] .theme-toggle {
-            background: #334155;
-        }
-        [data-bs-theme="dark"] .toggle-slider {
-            left: 27px;
-            background: #facc15;
-        }
-        /* ---------- NOTIFICATION BELL ---------- */
-        .bell-icon {
-            position: relative;
-            cursor: pointer;
-        }
+        [data-bs-theme="dark"] .theme-toggle { background: #334155; }
+        [data-bs-theme="dark"] .toggle-slider { left: 27px; background: #facc15; }
+        /* Notifications */
+        .bell-icon { position: relative; cursor: pointer; }
         .badge-count {
             position: absolute;
             top: -8px;
@@ -137,7 +102,7 @@
             border-radius: 30px;
             padding: 2px 6px;
         }
-        /* ---------- MOBILE OFFCANVAS SIDEBAR ---------- */
+        /* Mobile offcanvas */
         .mobile-overlay {
             position: fixed;
             top: 0;
@@ -163,13 +128,9 @@
             padding: 1rem;
             border-radius: 0 20px 20px 0;
         }
-        [data-bs-theme="dark"] .mobile-sidebar {
-            background: rgba(20,25,40,0.98);
-        }
-        .mobile-sidebar.show {
-            left: 0;
-        }
-        /* ---------- MOBILE BOTTOM NAV ---------- */
+        [data-bs-theme="dark"] .mobile-sidebar { background: rgba(20,25,40,0.98); }
+        .mobile-sidebar.show { left: 0; }
+        /* Bottom nav (mobile) */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -182,10 +143,7 @@
             display: none;
             padding: 8px 0;
         }
-        [data-bs-theme="dark"] .bottom-nav {
-            background: rgba(20,25,40,0.95);
-            border-top-color: rgba(255,255,255,0.1);
-        }
+        [data-bs-theme="dark"] .bottom-nav { background: rgba(20,25,40,0.95); border-top-color: rgba(255,255,255,0.1); }
         .bottom-nav-item {
             text-align: center;
             text-decoration: none;
@@ -193,16 +151,9 @@
             font-size: 0.7rem;
             transition: 0.2s;
         }
-        .bottom-nav-item i {
-            font-size: 1.5rem;
-            display: block;
-            margin-bottom: 2px;
-        }
-        .bottom-nav-item.active {
-            color: #667eea;
-            transform: translateY(-2px);
-        }
-        /* ---------- RESPONSIVE BREAKPOINTS ---------- */
+        .bottom-nav-item i { font-size: 1.5rem; display: block; margin-bottom: 2px; }
+        .bottom-nav-item.active { color: #667eea; transform: translateY(-2px); }
+        /* Responsive */
         @media (max-width: 767px) {
             .desktop-sidebar { display: none; }
             .bottom-nav { display: flex; }
@@ -212,18 +163,11 @@
             .mobile-sidebar, .mobile-menu-btn, .bottom-nav { display: none; }
             .desktop-sidebar { display: block; position: sticky; top: 90px; }
         }
-        /* ---------- ANIMATIONS ---------- */
-        @keyframes fadeUp {
-            0% { opacity: 0; transform: translateY(25px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
+        /* Animations */
+        @keyframes fadeUp { 0% { opacity: 0; transform: translateY(25px); } 100% { opacity: 1; transform: translateY(0); } }
         .fade-up { animation: fadeUp 0.5s ease-out; }
         .hover-lift { transition: transform 0.2s, box-shadow 0.2s; }
         .hover-lift:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -12px rgba(0,0,0,0.15); }
-        /* ---------- SCROLLBAR ---------- */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: #667eea; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -241,9 +185,7 @@
             Ideal International
         </a>
         <div class="d-flex align-items-center gap-3 ms-auto">
-            <!-- Theme toggle -->
             <button class="theme-toggle" onclick="toggleTheme()"><span class="toggle-slider"></span></button>
-            <!-- Notifications -->
             <div class="dropdown">
                 <a class="nav-link dropdown-toggle p-0" href="#" id="notifDropdown" data-bs-toggle="dropdown">
                     <div class="bell-icon">
@@ -259,7 +201,6 @@
                     <li><a class="dropdown-item text-center" href="{{ url_for('manage_notifications_page') if current_user.role == 'admin' else '#' }}">Manage</a></li>
                 </ul>
             </div>
-            <!-- Profile dropdown -->
             <div class="dropdown">
                 <a class="dropdown-toggle text-decoration-none d-flex align-items-center gap-2" href="#" data-bs-toggle="dropdown">
                     <div class="avatar">
@@ -278,14 +219,13 @@
                     <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
                 </ul>
             </div>
-            <!-- Mobile menu button (hamburger) -->
             <button class="btn btn-link d-md-none p-0" type="button" id="mobileMenuOpenBtn">
                 <i class="bi bi-list fs-1" style="color:#667eea;"></i>
             </button>
         </div>
     </div>
 </nav>
-<div style="height: 76px;"></div> <!-- spacer for fixed navbar -->
+<div style="height: 76px;"></div>
 
 <div class="container-fluid">
     <div class="row g-4">
@@ -344,7 +284,7 @@
                     {% endfor %}
                 {% endwith %}
 
-                <!-- Dynamic content -->
+                <!-- ONE AND ONLY content block -->
                 {% block content %}{% endblock %}
             </div>
         </div>
@@ -370,17 +310,14 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // --- Mobile sidebar (offcanvas) ---
+    // Mobile sidebar
     const mobileSidebar = document.getElementById('mobileSidebar');
     const mobileOverlay = document.getElementById('mobileOverlay');
     const openBtns = document.querySelectorAll('#mobileMenuOpenBtn, #mobileMenuBtn2');
     function openMobileSidebar() {
         if (!mobileSidebar) return;
-        // Clone desktop sidebar content into mobile sidebar
         const desktopSidebar = document.querySelector('.desktop-sidebar .glass-sidebar');
-        if (desktopSidebar) {
-            mobileSidebar.innerHTML = desktopSidebar.outerHTML;
-        }
+        if (desktopSidebar) mobileSidebar.innerHTML = desktopSidebar.outerHTML;
         mobileSidebar.classList.add('show');
         mobileOverlay.classList.add('show');
     }
@@ -391,7 +328,7 @@
     openBtns.forEach(btn => btn?.addEventListener('click', (e) => { e.preventDefault(); openMobileSidebar(); }));
     mobileOverlay?.addEventListener('click', closeMobileSidebar);
 
-    // --- Theme toggle ---
+    // Theme toggle
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-bs-theme', savedTheme);
     function toggleTheme() {
@@ -401,21 +338,17 @@
         localStorage.setItem('theme', newTheme);
     }
 
-    // --- Notification badge placeholder ---
-    function setNotifBadge(count) {
-        const badge = document.getElementById('notifBadge');
-        if (badge) badge.innerText = count;
-    }
-    setNotifBadge(0);
-
-    // --- Active link highlighting ---
+    // Notifications badge placeholder
+    document.getElementById('notifBadge').innerText = '0';
+    
+    // Active link highlight
     document.querySelectorAll('.sidebar .nav-link, .bottom-nav-item').forEach(link => {
         if (link.href === window.location.href) link.classList.add('active');
     });
 </script>
 
 {% else %}
-    <!-- Not logged in – just the block content (login page) -->
+    <!-- Not logged in – login page etc. -->
     {% block content %}{% endblock %}
 {% endif %}
 </body>
