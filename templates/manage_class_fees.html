@@ -1,82 +1,61 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="mt-4">Manage Class-wise Fees</h1>
-<ol class="breadcrumb mb-4">
-    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
-    <li class="breadcrumb-item active">Class-wise Fees</li>
-</ol>
+<h2>Class-wise Fees</h2>
 
-<!-- Flash messages -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% for category, message in messages %}
-    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-  {% endfor %}
-{% endwith %}
+<!-- DEBUG BOX (remove after fix) -->
+<div style="background: #fff3cd; padding: 10px; margin: 10px 0; border: 1px solid #ffecb5;">
+    <strong>Debug:</strong> {{ class_fees|length }} record(s) in database.<br>
+    {% for cf in class_fees %}
+        {{ cf.class_name }}: ₹{{ cf.fee_amount }}<br>
+    {% endfor %}
+</div>
 
-<div class="card">
-    <div class="card-header bg-success text-white">
-        <i class="bi bi-cash-stack"></i> All Classes – Set / Update Fee
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Class</th>
-                        <th>Current Fee (₹)</th>
-                        <th>Set / Update Fee</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% set all_classes = [
-                        'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
-                        'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
-                        'Class 11 Science', 'Class 11 Commerce', 'Class 11 Arts',
-                        'Class 12 Science', 'Class 12 Commerce', 'Class 12 Arts'
-                    ] %}
-
-                    {% for cls in all_classes %}
-                    {# Find existing fee record for this class #}
-                    {% set fee_record = None %}
-                    {% for cf in class_fees %}
-                        {% if cf.class_name == cls %}
-                            {% set fee_record = cf %}
+<!-- Main table -->
+<div class="table-responsive">
+    <table class="table table-bordered">
+        <thead class="table-dark">
+            <tr><th>Class</th><th>Current Fee (₹)</th><th>Set / Update</th></tr>
+        </thead>
+        <tbody>
+            {% set all_classes = [
+                'Class 1','Class 2','Class 3','Class 4','Class 5',
+                'Class 6','Class 7','Class 8','Class 9','Class 10',
+                'Class 11 Science','Class 11 Commerce','Class 11 Arts',
+                'Class 12 Science','Class 12 Commerce','Class 12 Arts'
+            ] %}
+            {% for cls in all_classes %}
+                {% set fee_record = namespace(value=None) %}
+                {% for cf in class_fees %}
+                    {% if cf.class_name == cls %}
+                        {% set fee_record.value = cf %}
+                    {% endif %}
+                {% endfor %}
+                <tr>
+                    <td><strong>{{ cls }}</strong></td>
+                    <td>
+                        {% if fee_record.value %}
+                            ₹{{ "%.2f"|format(fee_record.value.fee_amount) }}
+                        {% else %}
+                            <span class="text-muted">Not set</span>
                         {% endif %}
-                    {% endfor %}
-
-                    <tr>
-                        <td><strong>{{ cls }}</strong></td>
-                        <td>
-                            {% if fee_record %}
-                                ₹{{ "%.2f"|format(fee_record.fee_amount) }}
-                            {% else %}
-                                <span class="text-muted">Not set</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <form method="POST" action="{{ url_for('add_class_fee') }}" class="d-flex gap-2">
-                                <input type="hidden" name="class_name" value="{{ cls }}">
-                                <input type="number" name="fee_amount" 
-                                       class="form-control form-control-sm" 
-                                       style="width: 140px;" 
-                                       placeholder="Enter amount"
-                                       {% if fee_record %}value="{{ fee_record.fee_amount }}"{% endif %}
-                                       step="0.01" required>
-                                <button type="submit" class="btn btn-sm btn-primary">
-                                    {% if fee_record %}Update{% else %}Set{% endif %}
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('add_class_fee') }}" class="d-flex gap-2">
+                            <input type="hidden" name="class_name" value="{{ cls }}">
+                            <input type="number" name="fee_amount" class="form-control form-control-sm" 
+                                   style="width: 140px;" placeholder="Amount"
+                                   {% if fee_record.value %}value="{{ fee_record.value.fee_amount }}"{% endif %}
+                                   step="0.01" required>
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                {% if fee_record.value %}Update{% else %}Set{% endif %}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}
 <!-- Debug: number of records received -->
