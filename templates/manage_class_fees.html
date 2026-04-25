@@ -2,15 +2,6 @@
 
 {% block content %}
 <h2>Class-wise Fees</h2>
-
-<!-- DEBUG BOX (remove after fix) -->
-<div style="background: #fff3cd; padding: 10px; margin: 10px 0; border: 1px solid #ffecb5;">
-    <strong>Debug:</strong> {{ class_fees|length }} record(s) in database.<br>
-    {% for cf in class_fees %}
-        {{ cf.class_name }}: ₹{{ cf.fee_amount }}<br>
-    {% endfor %}
-</div>
-
 <!-- Main table -->
 <div class="table-responsive">
     <table class="table table-bordered">
