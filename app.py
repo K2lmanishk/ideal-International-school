@@ -1024,6 +1024,18 @@ def clean_class_names():
     except Exception as e:
         return f"❌ Error: {str(e)}"
     
+@app.route('/raw-class-fees')
+def raw_class_fees():
+    from models import ClassFee
+    records = ClassFee.query.all()
+    if not records:
+        return "❌ No records in class_fees table."
+    html = "<h3>Raw records (watch for spaces or special characters):</h3><ul>"
+    for r in records:
+        html += f"<li>'{r.class_name}' (length {len(r.class_name)}) → {r.fee_amount}</li>"
+    html += "</ul>"
+    return html
+
 # ============================================
 # 15. MAIN
 # ============================================
