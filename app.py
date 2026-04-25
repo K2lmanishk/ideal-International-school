@@ -1008,6 +1008,22 @@ def get_course_details(course_id):
         'subjects': [{'id': s.id, 'name': s.name, 'code': s.code, 'class_name': s.class_name} for s in subjects]
     })
 
+@app.route('/clean-class-names')
+def clean_class_names():
+    from models import ClassFee
+    try:
+        records = ClassFee.query.all()
+        count = 0
+        for fee in records:
+            cleaned = fee.class_name.strip()
+            if cleaned != fee.class_name:
+                fee.class_name = cleaned
+                count += 1
+        db.session.commit()
+        return f"✅ Cleaned {count} class names (removed spaces). <a href='/admin/class-fees'>Go back</a>"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+    
 # ============================================
 # 15. MAIN
 # ============================================
