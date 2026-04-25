@@ -5,110 +5,91 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>{% block title %}Ideal International School - School Management System{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- ApexCharts -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    
-    <!-- GSAP Animations -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    
-    <!-- Particles.js -->
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
-    
-    <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
     
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     <style>
-        /* Mobile Responsive Fixes */
+        /* Mobile Sidebar Styles */
         @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -280px;
+                width: 280px;
+                height: 100vh;
+                z-index: 1050;
+                transition: left 0.3s ease;
+                overflow-y: auto;
+                background: var(--sidebar-bg);
+                backdrop-filter: blur(20px);
+                box-shadow: 2px 0 20px rgba(0,0,0,0.2);
+            }
+            .sidebar.show {
+                left: 0;
+            }
+            .sidebar-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 1040;
+                display: none;
+            }
+            .sidebar-overlay.show {
+                display: block;
+            }
             .main-content {
                 padding: 12px !important;
             }
-            .card-body {
-                padding: 1rem !important;
+        }
+        
+        /* Desktop sidebar - normal */
+        @media (min-width: 769px) {
+            .sidebar {
+                position: sticky;
+                top: 70px;
+                height: calc(100vh - 70px);
             }
-            .table-responsive {
-                font-size: 0.85rem;
-            }
-            .btn {
-                padding: 8px 16px !important;
-                font-size: 0.85rem !important;
-            }
-            .modal-dialog {
-                margin: 0.5rem;
-            }
-            h1, .h1 {
-                font-size: 1.5rem !important;
-            }
-            h2, .h2 {
-                font-size: 1.3rem !important;
-            }
-            .stat-value {
-                font-size: 1.8rem !important;
+            .sidebar-overlay {
+                display: none;
             }
         }
         
-        /* Touch-friendly buttons */
-        @media (max-width: 768px) {
-            .btn, .nav-link, .dropdown-item, button {
-                min-height: 44px;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-            }
-            input, select, textarea {
-                font-size: 16px !important;
-            }
-        }
-        
-        /* School Header */
-        .school-header {
-            background: var(--bg-gradient);
-            padding: 10px 20px;
-            border-radius: 20px;
-            margin-bottom: 20px;
-        }
-        .school-name {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: white;
-            margin: 0;
-        }
-        .school-address {
-            font-size: 0.75rem;
-            color: rgba(255,255,255,0.8);
+        /* Ensure content shifts properly */
+        .main-content {
+            transition: margin-left 0.3s ease;
         }
     </style>
-    
-    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Animated Background Container -->
+    <!-- Animated Background -->
     <div id="bg-animation"></div>
     <div id="particles-js"></div>
     <div id="gradient-bg"></div>
     
     {% if current_user.is_authenticated %}
+    <!-- Mobile Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+    
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg glass-navbar">
         <div class="container-fluid">
-            <button class="btn btn-link text-white d-md-none" type="button" id="sidebarToggle">
+            <button class="btn btn-link text-white d-md-none" type="button" id="sidebarToggleBtn">
                 <i class="bi bi-list" style="font-size: 1.5rem;"></i>
             </button>
             
@@ -119,7 +100,6 @@
                 </div>
             </a>
             
-            <!-- Live Clock -->
             <div class="live-clock-wrapper d-none d-md-block">
                 <div class="live-clock">
                     <i class="bi bi-clock"></i>
@@ -136,7 +116,7 @@
                     <!-- Theme Toggle -->
                     <li class="nav-item me-3">
                         <div class="theme-toggle-wrapper">
-                            <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggle">
+                            <button class="theme-toggle-btn" onclick="toggleTheme()">
                                 <i class="bi bi-sun-fill theme-icon-light"></i>
                                 <i class="bi bi-moon-stars theme-icon-dark"></i>
                                 <span class="theme-toggle-slider"></span>
@@ -144,7 +124,7 @@
                         </div>
                     </li>
                     
-                    <!-- Search Bar -->
+                    <!-- Search -->
                     <li class="nav-item me-3 d-none d-lg-block">
                         <div class="search-wrapper">
                             <i class="bi bi-search search-icon"></i>
@@ -153,7 +133,7 @@
                         </div>
                     </li>
                     
-                    <!-- Notification Bell -->
+                    <!-- Notifications -->
                     <li class="nav-item dropdown me-3">
                         <a class="nav-link position-relative notification-bell" href="#" id="notificationDropdownBtn" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-bell-fill"></i>
@@ -167,12 +147,7 @@
                                     <button class="btn btn-sm btn-link" onclick="markAllNotificationsRead()">Mark all read</button>
                                 </div>
                             </div>
-                            <div id="notificationList" class="notification-list">
-                                <div class="skeleton-loader p-3">
-                                    <div class="skeleton-text"></div>
-                                    <div class="skeleton-text short"></div>
-                                </div>
-                            </div>
+                            <div id="notificationList" class="notification-list">...</div>
                             <div class="dropdown-footer">
                                 <a class="dropdown-item text-center" href="{{ url_for('manage_notifications_page') if current_user.role == 'admin' else '#' }}">
                                     <i class="bi bi-gear-fill me-1"></i>Manage Notifications
@@ -187,8 +162,7 @@
                             <div class="avatar-wrapper">
                                 <div class="avatar-circle">
                                     {% if current_user.profile_pic and current_user.profile_pic != 'default.png' %}
-                                    <img src="{{ current_user.profile_pic }}" alt="Profile" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                    <span style="display: none;">{{ current_user.full_name[0] | upper }}</span>
+                                    <img src="{{ current_user.profile_pic }}" alt="Profile">
                                     {% else %}
                                     <span>{{ current_user.full_name[0] | upper }}</span>
                                     {% endif %}
@@ -217,19 +191,16 @@
             <!-- Sidebar -->
             <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block sidebar glass-sidebar">
                 <div class="sidebar-content">
-                    <!-- School Info in Sidebar -->
                     <div class="school-header text-center">
                         <h6 class="school-name">{{ school_name }}</h6>
                         <p class="school-address">{{ school_address }}</p>
                     </div>
                     
-                    <!-- User Quick Info -->
                     <div class="sidebar-profile">
                         <div class="sidebar-avatar">
                             <div class="avatar-circle large">
                                 {% if current_user.profile_pic and current_user.profile_pic != 'default.png' %}
-                                <img src="{{ current_user.profile_pic }}" alt="Profile" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                <span style="display: none;">{{ current_user.full_name[0] | upper }}</span>
+                                <img src="{{ current_user.profile_pic }}" alt="Profile">
                                 {% else %}
                                 <span>{{ current_user.full_name[0] | upper }}</span>
                                 {% endif %}
@@ -254,7 +225,6 @@
                         {% endif %}
                     </ul>
                     
-                    <!-- Sidebar Footer -->
                     <div class="sidebar-footer">
                         <div class="status-indicator">
                             <span class="status-dot online"></span>
@@ -270,7 +240,6 @@
 
             <!-- Main Content -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-                <!-- School Header Banner -->
                 <div class="school-header-banner mb-4">
                     <div class="row align-items-center">
                         <div class="col-12">
@@ -289,7 +258,6 @@
                     </div>
                 </div>
                 
-                <!-- Flash Messages -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
@@ -307,17 +275,16 @@
         </div>
     </div>
 
-    <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 
-    <!-- Mobile Bottom Navigation (Visible only on mobile) -->
+    <!-- Mobile Bottom Navigation -->
     <div class="mobile-bottom-nav d-md-none">
         <div class="bottom-nav-items">
             <a href="{{ url_for('student_dashboard') if current_user.role == 'student' else url_for('faculty_dashboard') if current_user.role == 'faculty' else url_for('admin_dashboard') }}" class="bottom-nav-item">
                 <i class="bi bi-house-fill"></i>
                 <span>Home</span>
             </a>
-            <a href="#" class="bottom-nav-item" onclick="document.getElementById('sidebarToggle').click()">
+            <a href="#" class="bottom-nav-item" id="mobileMenuBtn">
                 <i class="bi bi-list"></i>
                 <span>Menu</span>
             </a>
@@ -338,24 +305,20 @@
                 </div>
                 <div class="modal-body">
                     <table class="shortcuts-table">
-                        <tr><td><kbd>Ctrl</kbd> + <kbd>D</kbd></td><td>Dashboard</td></tr>
-                        <tr><td><kbd>Ctrl</kbd> + <kbd>P</kbd></td><td>Profile</td></tr>
-                        <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td>Search</td></tr>
-                        <tr><td><kbd>Ctrl</kbd> + <kbd>T</kbd></td><td>Toggle Theme</td></tr>
-                        <tr><td><kbd>Ctrl</kbd> + <kbd>/</kbd></td><td>Shortcuts</td></tr>
-                        <tr><td><kbd>Esc</kbd></td><td>Close Modal</td></tr>
+                        <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Dashboard</td></tr>
+                        <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>Profile</td></tr>
+                        <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Search</td></tr>
+                        <tr><td><kbd>Esc</kbd></td><td>Close modal</td></tr>
                     </table>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     
     <style>
-        /* Mobile Bottom Navigation */
         .mobile-bottom-nav {
             position: fixed;
             bottom: 0;
@@ -379,7 +342,6 @@
             text-decoration: none;
             color: var(--text-secondary);
             font-size: 0.75rem;
-            transition: all 0.3s;
             padding: 8px 16px;
             border-radius: 12px;
         }
@@ -391,11 +353,6 @@
             color: #667eea;
             background: var(--sidebar-hover);
         }
-        .bottom-nav-item:hover {
-            color: #667eea;
-        }
-        
-        /* School Header Banner */
         .school-header-banner .glass-card {
             background: var(--card-bg);
             backdrop-filter: blur(10px);
@@ -404,20 +361,32 @@
         }
     </style>
     
-    <!-- Theme Initialization -->
     <script>
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-bs-theme', savedTheme);
-        
-        function toggleTheme() {
-            const html = document.documentElement;
-            const currentTheme = html.getAttribute('data-bs-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-bs-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            showToast(`Switched to ${newTheme} mode`, 'info');
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
         }
         
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
+        }
+        
+        // Event listeners
+        document.getElementById('sidebarToggleBtn')?.addEventListener('click', toggleSidebar);
+        document.getElementById('mobileMenuBtn')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleSidebar();
+        });
+        
+        // Close sidebar when clicking outside on mobile (already handled by overlay)
+        
+        // Live clock
         function updateClock() {
             const now = new Date();
             const clock = document.getElementById('liveClock');
@@ -426,23 +395,25 @@
         setInterval(updateClock, 1000);
         updateClock();
         
+        // Theme toggle
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-bs-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+        
         function showKeyboardShortcuts() {
             new bootstrap.Modal(document.getElementById('shortcutsModal')).show();
         }
         
-        // Sidebar toggle for mobile
-        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
-            document.getElementById('sidebar').classList.toggle('show');
-        });
-        
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function(e) {
-            const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.getElementById('sidebarToggle');
-            if (window.innerWidth < 768 && sidebar && sidebar.classList.contains('show')) {
-                if (!sidebar.contains(e.target) && !toggleBtn?.contains(e.target)) {
-                    sidebar.classList.remove('show');
-                }
+        // Active link highlight on mobile
+        document.querySelectorAll('.bottom-nav-item').forEach(item => {
+            if (item.href === window.location.href) {
+                item.classList.add('active');
             }
         });
     </script>
