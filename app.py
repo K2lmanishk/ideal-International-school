@@ -470,6 +470,7 @@ def manage_class_fees():
     if current_user.role != 'admin':
         return redirect(url_for('login'))
     class_fees = ClassFee.query.all()
+    print(f"=== DEBUG: {len(class_fees)} records ===")   # will appear in Render logs
     return render_template('manage_class_fees.html', class_fees=class_fees)
 
 @app.route('/admin/class-fee/add', methods=['POST'])
