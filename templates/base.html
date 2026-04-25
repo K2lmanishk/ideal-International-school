@@ -7,7 +7,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>{% block title %}Ideal International School - School Management System{% endblock %}</title>
     
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -22,8 +21,54 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     <style>
-        /* Mobile Sidebar Styles */
+        /* Mobile Adjustments */
         @media (max-width: 768px) {
+            /* Navbar spacing */
+            .glass-navbar .container-fluid {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .navbar-brand {
+                margin-right: auto;
+            }
+            .navbar-toggler {
+                order: 3;
+            }
+            /* Right icons group: theme + notification + profile */
+            .nav-icons-group {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                order: 2;
+                margin-left: auto;
+            }
+            /* Hide search on mobile */
+            .search-wrapper {
+                display: none;
+            }
+            /* Hide user name on mobile */
+            .user-name {
+                display: none;
+            }
+            /* Adjust notification bell */
+            .notification-bell {
+                margin-right: 0;
+            }
+            /* Theme toggle size */
+            .theme-toggle-btn {
+                width: 50px;
+                height: 26px;
+            }
+            .theme-toggle-slider {
+                width: 20px;
+                height: 20px;
+                top: 3px;
+                left: 3px;
+            }
+            [data-bs-theme="dark"] .theme-toggle-slider {
+                left: 27px;
+            }
+            /* Sidebar offcanvas */
             .sidebar {
                 position: fixed;
                 top: 0;
@@ -53,13 +98,23 @@
             .sidebar-overlay.show {
                 display: block;
             }
+            /* Bottom nav */
+            .mobile-bottom-nav {
+                display: flex;
+            }
+            /* Main content padding */
             .main-content {
                 padding: 12px !important;
             }
+            /* Cards */
+            .card-body {
+                padding: 1rem !important;
+            }
         }
-        
-        /* Desktop sidebar - normal */
         @media (min-width: 769px) {
+            .mobile-bottom-nav {
+                display: none;
+            }
             .sidebar {
                 position: sticky;
                 top: 70px;
@@ -68,42 +123,131 @@
             .sidebar-overlay {
                 display: none;
             }
+            .nav-icons-group {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
         }
-        
-        /* Ensure content shifts properly */
-        .main-content {
-            transition: margin-left 0.3s ease;
+        .mobile-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--navbar-bg);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-light);
+            z-index: 1040;
+            padding: 8px 0;
+        }
+        .bottom-nav-items {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            padding: 8px 16px;
+            border-radius: 12px;
+        }
+        .bottom-nav-item i {
+            font-size: 1.4rem;
+            margin-bottom: 4px;
+        }
+        .bottom-nav-item.active {
+            color: #667eea;
+            background: var(--sidebar-hover);
+        }
+        .school-header-banner .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid var(--border-light);
         }
     </style>
 </head>
 <body>
-    <!-- Animated Background -->
     <div id="bg-animation"></div>
     <div id="particles-js"></div>
     <div id="gradient-bg"></div>
     
     {% if current_user.is_authenticated %}
-    <!-- Mobile Overlay -->
     <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
     
-    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg glass-navbar">
         <div class="container-fluid">
             <button class="btn btn-link text-white d-md-none" type="button" id="sidebarToggleBtn">
                 <i class="bi bi-list" style="font-size: 1.5rem;"></i>
             </button>
             
-            <a class="navbar-brand animated-brand" href="#">
+            <a class="navbar-brand" href="#">
                 <div class="logo-container">
                     <i class="bi bi-trophy-fill"></i>
                     <span class="brand-text">Ideal<span class="brand-highlight">International School</span></span>
                 </div>
             </a>
             
-            <div class="live-clock-wrapper d-none d-md-block">
-                <div class="live-clock">
-                    <i class="bi bi-clock"></i>
-                    <span id="liveClock">00:00:00</span>
+            <!-- Right side icons (theme, notification, profile) -->
+            <div class="nav-icons-group">
+                <!-- Theme Toggle -->
+                <div class="theme-toggle-wrapper">
+                    <button class="theme-toggle-btn" onclick="toggleTheme()">
+                        <i class="bi bi-sun-fill theme-icon-light"></i>
+                        <i class="bi bi-moon-stars theme-icon-dark"></i>
+                        <span class="theme-toggle-slider"></span>
+                    </button>
+                </div>
+                
+                <!-- Notification Bell -->
+                <div class="dropdown">
+                    <a class="nav-link position-relative notification-bell" href="#" id="notificationDropdownBtn" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-bell-fill"></i>
+                        <span class="notification-badge" id="notificationCount">0</span>
+                        <span class="notification-pulse"></span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end glass-dropdown notification-dropdown" id="notificationDropdown">
+                        <div class="dropdown-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0"><i class="bi bi-bell-fill me-2"></i>Notifications</h6>
+                                <button class="btn btn-sm btn-link" onclick="markAllNotificationsRead()">Mark all read</button>
+                            </div>
+                        </div>
+                        <div id="notificationList" class="notification-list">...</div>
+                        <div class="dropdown-footer">
+                            <a class="dropdown-item text-center" href="{{ url_for('manage_notifications_page') if current_user.role == 'admin' else '#' }}">
+                                <i class="bi bi-gear-fill me-1"></i>Manage Notifications
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- User Profile -->
+                <div class="dropdown">
+                    <a class="nav-link dropdown-toggle user-profile-btn" href="#" role="button" data-bs-toggle="dropdown">
+                        <div class="avatar-wrapper">
+                            <div class="avatar-circle">
+                                {% if current_user.profile_pic and current_user.profile_pic != 'default.png' %}
+                                <img src="{{ current_user.profile_pic }}" alt="Profile" style="width:100%;height:100%;object-fit:cover;">
+                                {% else %}
+                                <span>{{ current_user.full_name[0] | upper }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="avatar-glow"></div>
+                        </div>
+                        <span class="user-name d-none d-md-inline">{{ current_user.full_name }}</span>
+                        <span class="role-badge d-none d-md-inline">{{ current_user.role|capitalize }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end glass-dropdown">
+                        <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="bi bi-person"></i> My Profile</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="showKeyboardShortcuts()"><i class="bi bi-keyboard"></i> Shortcuts</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                    </ul>
                 </div>
             </div>
             
@@ -112,72 +256,13 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center">
-                    <!-- Theme Toggle -->
-                    <li class="nav-item me-3">
-                        <div class="theme-toggle-wrapper">
-                            <button class="theme-toggle-btn" onclick="toggleTheme()">
-                                <i class="bi bi-sun-fill theme-icon-light"></i>
-                                <i class="bi bi-moon-stars theme-icon-dark"></i>
-                                <span class="theme-toggle-slider"></span>
-                            </button>
-                        </div>
-                    </li>
-                    
-                    <!-- Search -->
-                    <li class="nav-item me-3 d-none d-lg-block">
-                        <div class="search-wrapper">
+                <ul class="navbar-nav ms-auto">
+                    <!-- Search inside collapse (mobile) -->
+                    <li class="nav-item w-100 mt-2">
+                        <div class="search-wrapper w-100">
                             <i class="bi bi-search search-icon"></i>
-                            <input type="text" class="search-input" placeholder="Search..." id="globalSearch">
-                            <kbd class="search-shortcut">⌘K</kbd>
+                            <input type="text" class="search-input w-100" placeholder="Search..." id="globalSearchMobile">
                         </div>
-                    </li>
-                    
-                    <!-- Notifications -->
-                    <li class="nav-item dropdown me-3">
-                        <a class="nav-link position-relative notification-bell" href="#" id="notificationDropdownBtn" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-bell-fill"></i>
-                            <span class="notification-badge" id="notificationCount">0</span>
-                            <span class="notification-pulse"></span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end glass-dropdown notification-dropdown" id="notificationDropdown">
-                            <div class="dropdown-header">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0"><i class="bi bi-bell-fill me-2"></i>Notifications</h6>
-                                    <button class="btn btn-sm btn-link" onclick="markAllNotificationsRead()">Mark all read</button>
-                                </div>
-                            </div>
-                            <div id="notificationList" class="notification-list">...</div>
-                            <div class="dropdown-footer">
-                                <a class="dropdown-item text-center" href="{{ url_for('manage_notifications_page') if current_user.role == 'admin' else '#' }}">
-                                    <i class="bi bi-gear-fill me-1"></i>Manage Notifications
-                                </a>
-                            </div>
-                        </div>
-                    </li>
-                    
-                    <!-- User Profile -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle user-profile-btn" href="#" role="button" data-bs-toggle="dropdown">
-                            <div class="avatar-wrapper">
-                                <div class="avatar-circle">
-                                    {% if current_user.profile_pic and current_user.profile_pic != 'default.png' %}
-                                    <img src="{{ current_user.profile_pic }}" alt="Profile">
-                                    {% else %}
-                                    <span>{{ current_user.full_name[0] | upper }}</span>
-                                    {% endif %}
-                                </div>
-                                <div class="avatar-glow"></div>
-                            </div>
-                            <span class="user-name d-none d-md-inline">{{ current_user.full_name }}</span>
-                            <span class="role-badge d-none d-md-inline">{{ current_user.role|capitalize }}</span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end glass-dropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="bi bi-person"></i> My Profile</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="showKeyboardShortcuts()"><i class="bi bi-keyboard"></i> Shortcuts</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
-                        </ul>
                     </li>
                 </ul>
             </div>
@@ -188,14 +273,13 @@
     <div class="container-fluid">
         <div class="row">
             {% if current_user.is_authenticated %}
-            <!-- Sidebar -->
             <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block sidebar glass-sidebar">
+                <!-- Sidebar content same as before -->
                 <div class="sidebar-content">
                     <div class="school-header text-center">
                         <h6 class="school-name">{{ school_name }}</h6>
                         <p class="school-address">{{ school_address }}</p>
                     </div>
-                    
                     <div class="sidebar-profile">
                         <div class="sidebar-avatar">
                             <div class="avatar-circle large">
@@ -214,7 +298,6 @@
                             {{ current_user.role|capitalize }}
                         </div>
                     </div>
-                    
                     <ul class="nav flex-column sidebar-nav">
                         {% if current_user.role == 'admin' %}
                             {% include 'sidebar_admin.html' %}
@@ -224,7 +307,6 @@
                             {% include 'sidebar_student.html' %}
                         {% endif %}
                     </ul>
-                    
                     <div class="sidebar-footer">
                         <div class="status-indicator">
                             <span class="status-dot online"></span>
@@ -238,21 +320,16 @@
             </nav>
             {% endif %}
 
-            <!-- Main Content -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
                 <div class="school-header-banner mb-4">
-                    <div class="row align-items-center">
-                        <div class="col-12">
-                            <div class="glass-card p-3">
-                                <div class="d-flex flex-wrap justify-content-between align-items-center">
-                                    <div>
-                                        <h4 class="mb-1">{{ school_name }}</h4>
-                                        <p class="text-muted mb-0 small">{{ school_address }} | {{ school_contact }}</p>
-                                    </div>
-                                    <div class="text-end">
-                                        <span class="badge bg-primary">Academic Year: {{ academic_year }}</span>
-                                    </div>
-                                </div>
+                    <div class="glass-card p-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center">
+                            <div>
+                                <h4 class="mb-1">{{ school_name }}</h4>
+                                <p class="text-muted mb-0 small">{{ school_address }} | {{ school_contact }}</p>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-primary">Academic Year: {{ academic_year }}</span>
                             </div>
                         </div>
                     </div>
@@ -295,7 +372,6 @@
         </div>
     </div>
 
-    <!-- Keyboard Shortcuts Modal -->
     <div class="modal fade" id="shortcutsModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content glass-modal">
@@ -317,76 +393,24 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    
-    <style>
-        .mobile-bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--navbar-bg);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid var(--border-light);
-            z-index: 1040;
-            padding: 8px 0;
-        }
-        .bottom-nav-items {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-        }
-        .bottom-nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: var(--text-secondary);
-            font-size: 0.75rem;
-            padding: 8px 16px;
-            border-radius: 12px;
-        }
-        .bottom-nav-item i {
-            font-size: 1.4rem;
-            margin-bottom: 4px;
-        }
-        .bottom-nav-item.active {
-            color: #667eea;
-            background: var(--sidebar-hover);
-        }
-        .school-header-banner .glass-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            border: 1px solid var(--border-light);
-        }
-    </style>
-    
     <script>
-        // Sidebar toggle for mobile
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
             sidebar.classList.toggle('show');
             overlay.classList.toggle('show');
         }
-        
         function closeSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
             sidebar.classList.remove('show');
             overlay.classList.remove('show');
         }
-        
-        // Event listeners
         document.getElementById('sidebarToggleBtn')?.addEventListener('click', toggleSidebar);
         document.getElementById('mobileMenuBtn')?.addEventListener('click', function(e) {
             e.preventDefault();
             toggleSidebar();
         });
-        
-        // Close sidebar when clicking outside on mobile (already handled by overlay)
-        
-        // Live clock
         function updateClock() {
             const now = new Date();
             const clock = document.getElementById('liveClock');
@@ -394,8 +418,6 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
-        
-        // Theme toggle
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-bs-theme', savedTheme);
         function toggleTheme() {
@@ -405,19 +427,13 @@
             html.setAttribute('data-bs-theme', newTheme);
             localStorage.setItem('theme', newTheme);
         }
-        
         function showKeyboardShortcuts() {
             new bootstrap.Modal(document.getElementById('shortcutsModal')).show();
         }
-        
-        // Active link highlight on mobile
         document.querySelectorAll('.bottom-nav-item').forEach(item => {
-            if (item.href === window.location.href) {
-                item.classList.add('active');
-            }
+            if (item.href === window.location.href) item.classList.add('active');
         });
     </script>
-    
     {% block scripts %}{% endblock %}
 </body>
 </html>
