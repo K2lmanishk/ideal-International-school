@@ -2,71 +2,27 @@
 <html lang="en" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>{% block title %}Ideal International School{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>{% block title %}Ideal International School - School Management System{% endblock %}</title>
     
-    <!-- Bootstrap + Icons + Google Fonts -->
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #f1f5f9;
-            transition: background 0.2s;
-        }
-        [data-bs-theme="dark"] body {
-            background: #0f172a;
-            color: #e2e8f0;
-        }
-        .glass-navbar {
-            background: rgba(255,255,255,0.85);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        [data-bs-theme="dark"] .glass-navbar {
-            background: rgba(15,23,42,0.9);
-        }
-        .avatar-circle {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-        }
-        /* Sidebar (desktop) */
-        .sidebar {
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(8px);
-            border-right: 1px solid rgba(0,0,0,0.05);
-        }
-        [data-bs-theme="dark"] .sidebar {
-            background: rgba(15,23,42,0.95);
-        }
-        .sidebar .nav-link {
-            color: #1e293b;
-            border-radius: 12px;
-            margin: 4px 12px;
-            padding: 10px 16px;
-            transition: 0.2s;
-        }
-        [data-bs-theme="dark"] .sidebar .nav-link {
-            color: #cbd5e1;
-        }
-        .sidebar .nav-link:hover {
-            background: rgba(102,126,234,0.1);
-            transform: translateX(5px);
-        }
-        .sidebar .nav-link.active {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-        }
-        /* Mobile sidebar offcanvas */
+        /* Mobile Sidebar Styles */
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -75,13 +31,16 @@
                 width: 280px;
                 height: 100vh;
                 z-index: 1050;
-                transition: left 0.3s;
+                transition: left 0.3s ease;
                 overflow-y: auto;
+                background: var(--sidebar-bg);
+                backdrop-filter: blur(20px);
+                box-shadow: 2px 0 20px rgba(0,0,0,0.2);
             }
             .sidebar.show {
                 left: 0;
             }
-            .overlay {
+            .sidebar-overlay {
                 position: fixed;
                 top: 0;
                 left: 0;
@@ -91,202 +50,374 @@
                 z-index: 1040;
                 display: none;
             }
-            .overlay.show {
+            .sidebar-overlay.show {
                 display: block;
             }
-            .bottom-nav {
-                display: flex;
+            .main-content {
+                padding: 12px !important;
             }
         }
+        
+        /* Desktop sidebar - normal */
         @media (min-width: 769px) {
             .sidebar {
                 position: sticky;
                 top: 70px;
                 height: calc(100vh - 70px);
             }
-            .bottom-nav, .mobile-menu-btn {
+            .sidebar-overlay {
                 display: none;
             }
         }
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid #ddd;
-            z-index: 1030;
-            padding: 8px 0;
-        }
-        [data-bs-theme="dark"] .bottom-nav {
-            background: rgba(15,23,42,0.95);
-            border-top-color: #334155;
-        }
-        .bottom-nav-items {
-            display: flex;
-            justify-content: space-around;
-        }
-        .bottom-nav-item {
-            text-align: center;
-            text-decoration: none;
-            color: #64748b;
-            font-size: 0.75rem;
-        }
-        .bottom-nav-item i {
-            font-size: 1.5rem;
-        }
-        .bottom-nav-item.active {
-            color: #667eea;
-        }
-        .theme-toggle {
-            width: 48px;
-            height: 26px;
-            border-radius: 30px;
-            background: #e2e8f0;
-            border: none;
-            position: relative;
-            cursor: pointer;
-        }
-        [data-bs-theme="dark"] .theme-toggle {
-            background: #334155;
-        }
-        .toggle-slider {
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: white;
-            transition: 0.2s;
-        }
-        [data-bs-theme="dark"] .toggle-slider {
-            left: 25px;
-            background: #facc15;
+        
+        /* Ensure content shifts properly */
+        .main-content {
+            transition: margin-left 0.3s ease;
         }
     </style>
 </head>
 <body>
-
-{% if current_user.is_authenticated %}
-<!-- Overlay for mobile -->
-<div id="overlay" class="overlay" onclick="closeSidebar()"></div>
-
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg glass-navbar fixed-top">
-    <div class="container-fluid">
-        <button class="btn btn-link d-md-none p-0 me-2" type="button" id="sidebarToggle">
-            <i class="bi bi-list fs-1" style="color:#667eea;"></i>
-        </button>
-        <a class="navbar-brand fw-bold" href="{{ url_for('admin_dashboard') if current_user.role == 'admin' else url_for('faculty_dashboard') if current_user.role == 'faculty' else url_for('student_dashboard') }}">
-            <i class="bi bi-trophy-fill me-1" style="color:#667eea;"></i>
-            Ideal International
-        </a>
-        <div class="d-flex align-items-center gap-2 ms-auto">
-            <button class="theme-toggle" onclick="toggleTheme()"><span class="toggle-slider"></span></button>
-            <div class="dropdown">
-                <a class="nav-link dropdown-toggle p-0" href="#" data-bs-toggle="dropdown">
-                    <div class="avatar-circle">
-                        {% if current_user.profile_pic and current_user.profile_pic != 'default.png' %}
-                        <img src="{{ current_user.profile_pic }}" class="rounded-circle" width="36" height="36">
-                        {% else %}
-                        <span>{{ current_user.full_name[0]|upper }}</span>
-                        {% endif %}
-                    </div>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end shadow">
-                    <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="bi bi-person"></i> Profile</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+    <!-- Animated Background -->
+    <div id="bg-animation"></div>
+    <div id="particles-js"></div>
+    <div id="gradient-bg"></div>
+    
+    {% if current_user.is_authenticated %}
+    <!-- Mobile Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+    
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg glass-navbar">
+        <div class="container-fluid">
+            <button class="btn btn-link text-white d-md-none" type="button" id="sidebarToggleBtn">
+                <i class="bi bi-list" style="font-size: 1.5rem;"></i>
+            </button>
+            
+            <a class="navbar-brand animated-brand" href="#">
+                <div class="logo-container">
+                    <i class="bi bi-trophy-fill"></i>
+                    <span class="brand-text">Ideal<span class="brand-highlight">International School</span></span>
+                </div>
+            </a>
+            
+            <div class="live-clock-wrapper d-none d-md-block">
+                <div class="live-clock">
+                    <i class="bi bi-clock"></i>
+                    <span id="liveClock">00:00:00</span>
+                </div>
+            </div>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <!-- Theme Toggle -->
+                    <li class="nav-item me-3">
+                        <div class="theme-toggle-wrapper">
+                            <button class="theme-toggle-btn" onclick="toggleTheme()">
+                                <i class="bi bi-sun-fill theme-icon-light"></i>
+                                <i class="bi bi-moon-stars theme-icon-dark"></i>
+                                <span class="theme-toggle-slider"></span>
+                            </button>
+                        </div>
+                    </li>
+                    
+                    <!-- Search -->
+                    <li class="nav-item me-3 d-none d-lg-block">
+                        <div class="search-wrapper">
+                            <i class="bi bi-search search-icon"></i>
+                            <input type="text" class="search-input" placeholder="Search..." id="globalSearch">
+                            <kbd class="search-shortcut">⌘K</kbd>
+                        </div>
+                    </li>
+                    
+                    <!-- Notifications -->
+                    <li class="nav-item dropdown me-3">
+                        <a class="nav-link position-relative notification-bell" href="#" id="notificationDropdownBtn" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-bell-fill"></i>
+                            <span class="notification-badge" id="notificationCount">0</span>
+                            <span class="notification-pulse"></span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end glass-dropdown notification-dropdown" id="notificationDropdown">
+                            <div class="dropdown-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0"><i class="bi bi-bell-fill me-2"></i>Notifications</h6>
+                                    <button class="btn btn-sm btn-link" onclick="markAllNotificationsRead()">Mark all read</button>
+                                </div>
+                            </div>
+                            <div id="notificationList" class="notification-list">...</div>
+                            <div class="dropdown-footer">
+                                <a class="dropdown-item text-center" href="{{ url_for('manage_notifications_page') if current_user.role == 'admin' else '#' }}">
+                                    <i class="bi bi-gear-fill me-1"></i>Manage Notifications
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <!-- User Profile -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle user-profile-btn" href="#" role="button" data-bs-toggle="dropdown">
+                            <div class="avatar-wrapper">
+                                <div class="avatar-circle">
+                                    {% if current_user.profile_pic and current_user.profile_pic != 'default.png' %}
+                                    <img src="{{ current_user.profile_pic }}" alt="Profile">
+                                    {% else %}
+                                    <span>{{ current_user.full_name[0] | upper }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="avatar-glow"></div>
+                            </div>
+                            <span class="user-name d-none d-md-inline">{{ current_user.full_name }}</span>
+                            <span class="role-badge d-none d-md-inline">{{ current_user.role|capitalize }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end glass-dropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="bi bi-person"></i> My Profile</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showKeyboardShortcuts()"><i class="bi bi-keyboard"></i> Shortcuts</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                        </ul>
+                    </li>
                 </ul>
             </div>
         </div>
-    </div>
-</nav>
-<div style="height: 70px;"></div>
+    </nav>
+    {% endif %}
 
-<div class="container-fluid">
-    <div class="row g-0">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="col-md-3 col-lg-2 d-none d-md-block sidebar">
-            <div class="p-3">
-                <div class="text-center mb-3">
-                    <h6>{{ school_name }}</h6>
-                    <small class="text-muted">{{ school_address }}</small>
-                </div>
-                <hr>
-                <ul class="nav flex-column">
-                    {% if current_user.role == 'admin' %}
-                        {% include 'sidebar_admin.html' %}
-                    {% elif current_user.role == 'faculty' %}
-                        {% include 'sidebar_faculty.html' %}
-                    {% else %}
-                        {% include 'sidebar_student.html' %}
-                    {% endif %}
-                </ul>
-            </div>
-        </aside>
-        
-        <!-- Main Content -->
-        <main class="col-md-9 col-lg-10 px-3 px-md-4 py-3">
-            <!-- School banner -->
-            <div class="bg-white p-3 rounded-4 shadow-sm mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                    <div>
-                        <h4 class="mb-0">{{ school_name }}</h4>
-                        <p class="text-muted mb-0"><i class="bi bi-geo-alt"></i> {{ school_address }} | {{ school_contact }}</p>
+    <div class="container-fluid">
+        <div class="row">
+            {% if current_user.is_authenticated %}
+            <!-- Sidebar -->
+            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block sidebar glass-sidebar">
+                <div class="sidebar-content">
+                    <div class="school-header text-center">
+                        <h6 class="school-name">{{ school_name }}</h6>
+                        <p class="school-address">{{ school_address }}</p>
                     </div>
-                    <span class="badge bg-primary">Academic Year {{ academic_year }}</span>
+                    
+                    <div class="sidebar-profile">
+                        <div class="sidebar-avatar">
+                            <div class="avatar-circle large">
+                                {% if current_user.profile_pic and current_user.profile_pic != 'default.png' %}
+                                <img src="{{ current_user.profile_pic }}" alt="Profile">
+                                {% else %}
+                                <span>{{ current_user.full_name[0] | upper }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="avatar-ring"></div>
+                        </div>
+                        <h6 class="sidebar-name">{{ current_user.full_name }}</h6>
+                        <p class="sidebar-email">{{ current_user.email }}</p>
+                        <div class="sidebar-role">
+                            <span class="role-indicator"></span>
+                            {{ current_user.role|capitalize }}
+                        </div>
+                    </div>
+                    
+                    <ul class="nav flex-column sidebar-nav">
+                        {% if current_user.role == 'admin' %}
+                            {% include 'sidebar_admin.html' %}
+                        {% elif current_user.role == 'faculty' %}
+                            {% include 'sidebar_faculty.html' %}
+                        {% elif current_user.role == 'student' %}
+                            {% include 'sidebar_student.html' %}
+                        {% endif %}
+                    </ul>
+                    
+                    <div class="sidebar-footer">
+                        <div class="status-indicator">
+                            <span class="status-dot online"></span>
+                            <span>Online</span>
+                        </div>
+                        <div class="sidebar-version">
+                            <span class="badge bg-gradient">IIPS v1.0</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            {% endif %}
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <div class="school-header-banner mb-4">
+                    <div class="row align-items-center">
+                        <div class="col-12">
+                            <div class="glass-card p-3">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center">
+                                    <div>
+                                        <h4 class="mb-1">{{ school_name }}</h4>
+                                        <p class="text-muted mb-0 small">{{ school_address }} | {{ school_contact }}</p>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-primary">Academic Year: {{ academic_year }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show custom-alert" role="alert">
+                                <i class="bi bi-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+    <!-- Mobile Bottom Navigation -->
+    <div class="mobile-bottom-nav d-md-none">
+        <div class="bottom-nav-items">
+            <a href="{{ url_for('student_dashboard') if current_user.role == 'student' else url_for('faculty_dashboard') if current_user.role == 'faculty' else url_for('admin_dashboard') }}" class="bottom-nav-item">
+                <i class="bi bi-house-fill"></i>
+                <span>Home</span>
+            </a>
+            <a href="#" class="bottom-nav-item" id="mobileMenuBtn">
+                <i class="bi bi-list"></i>
+                <span>Menu</span>
+            </a>
+            <a href="{{ url_for('profile') }}" class="bottom-nav-item">
+                <i class="bi bi-person-fill"></i>
+                <span>Profile</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div class="modal fade" id="shortcutsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content glass-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-keyboard me-2"></i>Keyboard Shortcuts</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="shortcuts-table">
+                        <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Dashboard</td></tr>
+                        <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>Profile</td></tr>
+                        <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Search</td></tr>
+                        <tr><td><kbd>Esc</kbd></td><td>Close modal</td></tr>
+                    </table>
                 </div>
             </div>
-            
-            <!-- Flash messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% for cat, msg in messages %}
-                    <div class="alert alert-{{ cat }} alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-                {% endfor %}
-            {% endwith %}
-            
-            {% block content %}{% endblock %}
-        </main>
+        </div>
     </div>
-</div>
 
-<!-- Mobile bottom nav -->
-<div class="bottom-nav d-md-none">
-    <div class="bottom-nav-items py-1">
-        <a href="{% if current_user.role == 'admin' %}{{ url_for('admin_dashboard') }}{% elif current_user.role == 'faculty' %}{{ url_for('faculty_dashboard') }}{% else %}{{ url_for('student_dashboard') }}{% endif %}" class="bottom-nav-item"><i class="bi bi-house-door-fill"></i><span>Home</span></a>
-        <a href="#" id="mobileMenuBtn" class="bottom-nav-item"><i class="bi bi-list"></i><span>Menu</span></a>
-        <a href="{{ url_for('profile') }}" class="bottom-nav-item"><i class="bi bi-person-fill"></i><span>Profile</span></a>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    // Sidebar (mobile)
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('overlay');
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    function openSidebar() { sidebar.classList.add('show'); overlay.classList.add('show'); }
-    function closeSidebar() { sidebar.classList.remove('show'); overlay.classList.remove('show'); }
-    if (sidebarToggle) sidebarToggle.addEventListener('click', openSidebar);
-    if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', (e) => { e.preventDefault(); openSidebar(); });
-    if (overlay) overlay.addEventListener('click', closeSidebar);
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     
-    // Theme
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-bs-theme', savedTheme);
-    function toggleTheme() {
-        const html = document.documentElement;
-        const newTheme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
-        html.setAttribute('data-bs-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-    }
-</script>
-{% else %}
-    {% block content %}{% endblock %}
-{% endif %}
+    <style>
+        .mobile-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--navbar-bg);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-light);
+            z-index: 1040;
+            padding: 8px 0;
+        }
+        .bottom-nav-items {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            padding: 8px 16px;
+            border-radius: 12px;
+        }
+        .bottom-nav-item i {
+            font-size: 1.4rem;
+            margin-bottom: 4px;
+        }
+        .bottom-nav-item.active {
+            color: #667eea;
+            background: var(--sidebar-hover);
+        }
+        .school-header-banner .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid var(--border-light);
+        }
+    </style>
+    
+    <script>
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
+        
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
+        }
+        
+        // Event listeners
+        document.getElementById('sidebarToggleBtn')?.addEventListener('click', toggleSidebar);
+        document.getElementById('mobileMenuBtn')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleSidebar();
+        });
+        
+        // Close sidebar when clicking outside on mobile (already handled by overlay)
+        
+        // Live clock
+        function updateClock() {
+            const now = new Date();
+            const clock = document.getElementById('liveClock');
+            if (clock) clock.textContent = now.toLocaleTimeString();
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+        
+        // Theme toggle
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-bs-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+        
+        function showKeyboardShortcuts() {
+            new bootstrap.Modal(document.getElementById('shortcutsModal')).show();
+        }
+        
+        // Active link highlight on mobile
+        document.querySelectorAll('.bottom-nav-item').forEach(item => {
+            if (item.href === window.location.href) {
+                item.classList.add('active');
+            }
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
 </body>
 </html>
