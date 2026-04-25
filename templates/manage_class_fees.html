@@ -83,3 +83,9 @@
 <div class="alert alert-info">
     Database has {{ class_fees|length }} class fee records.
 </div>
+<div style="background: yellow; padding: 10px; margin: 10px 0;">
+    DEBUG: class_fees has {{ class_fees|length }} records.
+    {% for cf in class_fees %}
+        <br>• {{ cf.class_name }} = {{ cf.fee_amount }}
+    {% endfor %}
+</div>
