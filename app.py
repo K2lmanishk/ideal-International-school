@@ -95,6 +95,15 @@ def inject_school_info():
         'school_email': SCHOOL_EMAIL,
         'academic_year': ACADEMIC_YEAR
     }
+@app.context_processor
+def utility_functions():
+    import urllib.parse
+    def whatsapp_link(phone, message):
+        if not phone:
+            return "#"
+        encoded_msg = urllib.parse.quote(message)
+        return f"https://wa.me/{phone}?text={encoded_msg}"
+    return dict(whatsapp_link=whatsapp_link)
 
 # ============================================
 # 5. AUTHENTICATION ROUTES
@@ -895,6 +904,22 @@ def mark_all_notifications_read():
 # 12. SMS ROUTES
 # ============================================
 
+@app.route('/api/get_students_by_subject/<int:subject_id>')
+@login_required
+def get_students_by_subject(subject_id):
+    subject = Subject.query.get(subject_id)
+    if not subject:
+        return jsonify([])
+    students = Student.query.filter_by(class_name=subject.class_name).all()
+    return jsonify([{
+        'id': s.id,
+        'roll_no': s.roll_no,
+        'name': s.user.full_name,
+        # Add this line:
+        'phone': s.phone or ''
+    } for s in students])
+
+
 @app.route('/admin/send-sms')
 @login_required
 def send_sms_page():
@@ -1068,15 +1093,6 @@ def setup_db():
         return "✅ Database setup complete!<br><br>Admin: admin / admin123<br><br><a href='/login'>Login</a>"
     except Exception as e:
         return f"❌ Error: {str(e)}"
-
-@app.route('/api/get_students_by_subject/<int:subject_id>')
-@login_required
-def get_students_by_subject(subject_id):
-    subject = Subject.query.get(subject_id)
-    if not subject:
-        return jsonify([])
-    students = Student.query.filter_by(class_name=subject.class_name).all()
-    return jsonify([{'id': s.id, 'roll_no': s.roll_no, 'name': s.user.full_name} for s in students])
 
 @app.route('/api/get_course_details/<int:course_id>')
 @login_required
