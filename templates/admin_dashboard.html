@@ -1,169 +1,193 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="mt-4">Admin Dashboard</h1>
-<ol class="breadcrumb mb-4">
-    <li class="breadcrumb-item active">Overview</li>
-</ol>
 
-<div class="row">
+
+<style>
+    .stat-card { transition: transform 0.25s, box-shadow 0.25s; }
+    .stat-card:hover { transform: translateY(-8px); box-shadow: 0 20px 30px -12px rgba(0,0,0,0.2); }
+    .counter-value { font-size: 2.5rem; font-weight: 800; line-height: 1.2; }
+    .quick-action-box {
+        background: var(--card-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--border-light);
+        border-radius: 1.5rem;
+        padding: 1rem 0.5rem;
+        text-align: center;
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: all 0.25s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 120px;
+        height: 100%;
+        width: 100%;
+    }
+    .quick-action-box i { font-size: 2rem; margin-bottom: 0.6rem; transition: transform 0.2s; }
+    .quick-action-box span { font-weight: 500; font-size: 0.9rem; }
+    .quick-action-box:hover { transform: translateY(-6px); border-color: #667eea; box-shadow: 0 12px 25px -8px rgba(0,0,0,0.2); }
+    .quick-action-box:hover i { transform: scale(1.1); }
+    .row.g-3 > .col-6 { display: flex; }
+    .notice-item { transition: background 0.2s; border-radius: 16px; }
+    .notice-item:hover { background: rgba(102,126,234,0.08); }
+    .live-greeting {
+        background: rgba(102,126,234,0.15);
+        backdrop-filter: blur(8px);
+        border-radius: 50px;
+        padding: 0.3rem 1rem;
+        font-size: 0.9rem;
+    }
+    @media (max-width: 768px) {
+        .counter-value { font-size: 1.8rem; }
+        .quick-action-box { min-height: 100px; }
+        .quick-action-box i { font-size: 1.6rem; }
+        .quick-action-box span { font-size: 0.8rem; }
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+    <div>
+        <h1 class="fw-bold display-6">Admin Dashboard</h1>
+        <p class="text-secondary mb-0">Welcome back, {{ current_user.full_name }} 👋</p>
+    </div>
+    <div class="live-greeting mt-2 mt-sm-0">
+        <i class="bi bi-clock-history me-1"></i> <span id="liveDateTime"></span>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
     <div class="col-xl-3 col-md-6">
-        <div class="card stat-card bg-primary text-white mb-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-value">{{ total_students }}</div>
-                        <div class="stat-label">Total Students</div>
-                    </div>
-                    <i class="bi bi-people-fill stat-icon"></i>
+        <div class="card stat-card p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="counter-value" id="studentsCounter">0</div>
+                    <div class="text-secondary mt-1">Total Students</div>
                 </div>
+                <i class="bi bi-people-fill fs-1 opacity-75"></i>
             </div>
-            <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href="{{ url_for('manage_users') }}">View Details</a>
-                <i class="bi bi-chevron-right text-white"></i>
-            </div>
+            <div class="mt-2"><a href="{{ url_for('manage_users') }}" class="small text-decoration-none">View all →</a></div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
-        <div class="card stat-card bg-success text-white mb-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-value">{{ total_faculty }}</div>
-                        <div class="stat-label">Total Faculty</div>
-                    </div>
-                    <i class="bi bi-person-badge-fill stat-icon"></i>
+        <div class="card stat-card p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="counter-value" id="facultyCounter">0</div>
+                    <div class="text-secondary mt-1">Total Faculty</div>
                 </div>
+                <i class="bi bi-person-badge-fill fs-1 opacity-75"></i>
             </div>
-            <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href="{{ url_for('manage_users') }}">View Details</a>
-                <i class="bi bi-chevron-right text-white"></i>
-            </div>
+            <div class="mt-2"><a href="{{ url_for('manage_users') }}" class="small text-decoration-none">View all →</a></div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
-        <div class="card stat-card bg-warning text-white mb-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-value">{{ total_courses }}</div>
-                        <div class="stat-label">Streams</div>
-                    </div>
-                    <i class="bi bi-book-fill stat-icon"></i>
+        <div class="card stat-card p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="counter-value" id="coursesCounter">0</div>
+                    <div class="text-secondary mt-1">Courses / Streams</div>
                 </div>
+                <i class="bi bi-book-fill fs-1 opacity-75"></i>
             </div>
-            <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href="{{ url_for('manage_courses') }}">View Details</a>
-                <i class="bi bi-chevron-right text-white"></i>
-            </div>
+            <div class="mt-2"><a href="{{ url_for('manage_courses') }}" class="small text-decoration-none">Manage →</a></div>
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
-        <div class="card stat-card bg-info text-white mb-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-value">{{ academic_year }}</div>
-                        <div class="stat-label">Academic Year</div>
-                    </div>
-                    <i class="bi bi-calendar-fill stat-icon"></i>
+        <div class="card stat-card p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="counter-value">{{ academic_year }}</div>
+                    <div class="text-secondary mt-1">Academic Year</div>
                 </div>
+                <i class="bi bi-calendar-fill fs-1 opacity-75"></i>
             </div>
-            <div class="card-footer d-flex align-items-center justify-content-between">
-                <span class="small text-white">{{ school_name }}</span>
-                <i class="bi bi-trophy-fill text-white"></i>
-            </div>
+            <div class="mt-2"><span class="small text-secondary">{{ school_name }}</span></div>
         </div>
     </div>
 </div>
 
-<div class="row">
+<div class="row g-4 mb-4">
     <div class="col-lg-6">
-        <div class="card mb-4">
-            <div class="card-header"><i class="bi bi-megaphone"></i> Recent Notices</div>
-            <div class="card-body">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-bottom fw-semibold"><i class="bi bi-megaphone me-2"></i> Recent Notices</div>
+            <div class="card-body p-0">
                 {% if notices %}
-                <div class="list-group">
-                    {% for notice in notices %}
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between align-items-start flex-wrap">
-                            <div>
-                                <strong>{{ notice.title }}</strong>
-                                <p class="mb-1 small">{{ notice.content[:100] }}{% if notice.content|length > 100 %}...{% endif %}</p>
-                            </div>
-                            <small class="text-muted">{{ notice.created_at.strftime('%d %b %Y') }}</small>
+                <div class="list-group list-group-flush">
+                    {% for notice in notices[:5] %}
+                    <div class="list-group-item notice-item d-flex justify-content-between align-items-start bg-transparent border-bottom">
+                        <div class="me-3">
+                            <strong>{{ notice.title }}</strong>
+                            <p class="small text-secondary mb-0">{{ notice.content[:100] }}{% if notice.content|length > 100 %}...{% endif %}</p>
                         </div>
+                        <small class="text-muted">{{ notice.created_at.strftime('%d %b %Y') }}</small>
                     </div>
                     {% endfor %}
                 </div>
-                <div class="mt-3 text-center">
-                    <a href="{{ url_for('manage_notices') }}" class="btn btn-sm btn-primary">View All Notices</a>
-                </div>
+                <div class="text-center p-3"><a href="{{ url_for('manage_notices') }}" class="btn btn-sm btn-outline-primary rounded-pill px-4">View All Notices</a></div>
                 {% else %}
-                <p class="text-muted text-center py-4">No notices yet. Create your first notice!</p>
-                <div class="text-center">
-                    <a href="{{ url_for('manage_notices') }}" class="btn btn-primary">Post Notice</a>
-                </div>
+                <div class="text-center py-5"><i class="bi bi-envelope-paper fs-1 opacity-25"></i><p class="mt-2">No notices yet.</p><a href="{{ url_for('manage_notices') }}" class="btn btn-primary rounded-pill">Create Notice</a></div>
                 {% endif %}
             </div>
         </div>
     </div>
-    
     <div class="col-lg-6">
-        <div class="card mb-4">
-            <div class="card-header"><i class="bi bi-speedometer2"></i> Quick Actions</div>
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-bottom fw-semibold"><i class="bi bi-lightning-charge me-2"></i> Quick Actions</div>
             <div class="card-body">
                 <div class="row g-3">
-                    <div class="col-6">
-                        <a href="{{ url_for('manage_users') }}" class="btn btn-outline-primary w-100 py-3">
-                            <i class="bi bi-person-plus fs-3 d-block mb-2"></i>
-                            <span>Add User</span>
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="{{ url_for('manage_courses') }}" class="btn btn-outline-success w-100 py-3">
-                            <i class="bi bi-book-plus fs-3 d-block mb-2"></i>
-                            <span>Add Course</span>
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="{{ url_for('manage_subjects') }}" class="btn btn-outline-warning w-100 py-3">
-                            <i class="bi bi-journal-plus fs-3 d-block mb-2"></i>
-                            <span>Add Subject</span>
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="{{ url_for('manage_timetable') }}" class="btn btn-outline-info w-100 py-3">
-                            <i class="bi bi-calendar-plus fs-3 d-block mb-2"></i>
-                            <span>Manage Timetable</span>
-                        </a>
-                    </div>
+                    <div class="col-6"><a href="{{ url_for('manage_users') }}" class="quick-action-box"><i class="bi bi-person-plus-fill"></i><span>Add User</span></a></div>
+                    <div class="col-6"><a href="{{ url_for('manage_courses') }}" class="quick-action-box"><i class="bi bi-book-half"></i><span>Add Course</span></a></div>
+                    <div class="col-6"><a href="{{ url_for('manage_subjects') }}" class="quick-action-box"><i class="bi bi-journal-bookmark-fill"></i><span>Add Subject</span></a></div>
+                    <div class="col-6"><a href="{{ url_for('manage_timetable') }}" class="quick-action-box"><i class="bi bi-calendar-week-fill"></i><span>Timetable</span></a></div>
+                    <div class="col-6"><a href="{{ url_for('admin_manage_fees') }}" class="quick-action-box"><i class="bi bi-cash-stack"></i><span>Manage Fees</span></a></div>
+                    <div class="col-6"><a href="{{ url_for('send_sms_page') }}" class="quick-action-box"><i class="bi bi-chat-dots-fill"></i><span>Send SMS</span></a></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header"><i class="bi bi-cash-stack"></i> Fee Summary</div>
-            <div class="card-body">
-                <div class="text-center">
-                    <a href="{{ url_for('admin_manage_fees') }}" class="btn btn-primary">Manage Fees</a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header"><i class="bi bi-chat-dots"></i> SMS Alerts</div>
-            <div class="card-body">
-                <div class="text-center">
-                    <a href="{{ url_for('send_sms_page') }}" class="btn btn-primary">Send SMS</a>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="row g-4">
+    <div class="col-md-6"><div class="card text-center p-3"><i class="bi bi-graph-up fs-1 mt-2" style="color:#667eea;"></i><h5 class="mt-2">Fee Collection Overview</h5><p class="small text-secondary">Track payments, pending dues, and generate reports.</p><a href="{{ url_for('admin_manage_fees') }}" class="btn btn-primary rounded-pill mt-2">View Details</a></div></div>
+    <div class="col-md-6"><div class="card text-center p-3"><i class="bi bi-envelope-paper-fill fs-1 mt-2" style="color:#f5576c;"></i><h5 class="mt-2">Bulk Communication</h5><p class="small text-secondary">Send SMS alerts, email notifications, or push messages.</p><a href="{{ url_for('send_sms_page') }}" class="btn btn-primary rounded-pill mt-2">Send SMS</a></div></div>
 </div>
+
+<script>
+    // Animated counters
+    const counters = [
+        { id: 'studentsCounter', target: {{ total_students|default(0) }} },
+        { id: 'facultyCounter', target: {{ total_faculty|default(0) }} },
+        { id: 'coursesCounter', target: {{ total_courses|default(0) }} }
+    ];
+    function animateCounter(id, target) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        let current = 0;
+        const step = Math.ceil(target / 60);
+        function update() {
+            current += step;
+            if (current < target) { el.innerText = current; requestAnimationFrame(update); }
+            else { el.innerText = target; }
+        }
+        update();
+    }
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const found = counters.find(c => c.id === entry.target.id);
+                if (found) animateCounter(found.id, found.target);
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.3 });
+    counters.forEach(c => { const el = document.getElementById(c.id); if (el) observer.observe(el); });
+    // Live clock
+    function updateDateTime() {
+        const now = new Date();
+        document.getElementById('liveDateTime').innerText = now.toLocaleString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    updateDateTime(); setInterval(updateDateTime, 1000);
+</script>
 {% endblock %}

@@ -4,57 +4,67 @@
     </a>
 </li>
 <li class="nav-item">
-    <a class="nav-link {% if request.endpoint == 'manage_users' %}active{% endif %}" href="{{ url_for('manage_users') }}">
+    <a class="nav-link {% if request.endpoint in ['manage_users', 'add_user', 'delete_user'] %}active{% endif %}" href="{{ url_for('manage_users') }}">
         <i class="bi bi-people"></i> <span>Manage Users</span>
     </a>
 </li>
 <li class="nav-item">
-    <a class="nav-link {% if request.endpoint == 'manage_courses' %}active{% endif %}" href="{{ url_for('manage_courses') }}">
-        <i class="bi bi-book"></i> <span>Manage Courses</span>
+    <a class="nav-link {% if request.endpoint in ['manage_courses', 'add_course', 'delete_course'] %}active{% endif %}" href="{{ url_for('manage_courses') }}">
+        <i class="bi bi-book"></i> <span>Courses</span>
     </a>
 </li>
 <li class="nav-item">
-    <a class="nav-link {% if request.endpoint == 'manage_subjects' %}active{% endif %}" href="{{ url_for('manage_subjects') }}">
-        <i class="bi bi-journal"></i> <span>Manage Subjects</span>
+    <a class="nav-link {% if request.endpoint in ['manage_subjects', 'add_subject'] %}active{% endif %}" href="{{ url_for('manage_subjects') }}">
+        <i class="bi bi-journal"></i> <span>Subjects</span>
     </a>
 </li>
 <li class="nav-item">
     <a class="nav-link {% if request.endpoint == 'assign_faculty' %}active{% endif %}" href="{{ url_for('assign_faculty') }}">
-        <i class="bi bi-person-check"></i> <span>Assign Faculty</span>
+        <i class="bi bi-person-badge"></i> <span>Assign Faculty</span>
     </a>
 </li>
 <li class="nav-item">
-    <a class="nav-link {% if request.endpoint == 'manage_notices' %}active{% endif %}" href="{{ url_for('manage_notices') }}">
+    <a class="nav-link {% if request.endpoint in ['manage_timetable', 'add_timetable', 'delete_timetable'] %}active{% endif %}" href="{{ url_for('manage_timetable') }}">
+        <i class="bi bi-calendar-week"></i> <span>Timetable</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link {% if request.endpoint in ['manage_notices', 'delete_notice'] %}active{% endif %}" href="{{ url_for('manage_notices') }}">
         <i class="bi bi-megaphone"></i> <span>Notices</span>
     </a>
 </li>
 <li class="nav-item">
-    <a class="nav-link {% if request.endpoint == 'manage_notifications_page' %}active{% endif %}" href="{{ url_for('manage_notifications_page') }}">
-        <i class="bi bi-bell"></i> <span>Send Notifications</span>
-    </a>
-</li>
-<li class="nav-item">
-    <a class="nav-link {% if request.endpoint == 'manage_timetable' %}active{% endif %}" href="{{ url_for('manage_timetable') }}">
-        <i class="bi bi-calendar-week"></i> <span>Manage Timetable</span>
-    </a>
-</li>
-<li class="nav-item">
-    <a class="nav-link {% if request.endpoint == 'admin_manage_fees' %}active{% endif %}" href="{{ url_for('admin_manage_fees') }}">
+    <a class="nav-link {% if request.endpoint in ['admin_manage_fees', 'add_fee', 'record_payment', 'student_fee_history'] %}active{% endif %}" href="{{ url_for('admin_manage_fees') }}">
         <i class="bi bi-cash-stack"></i> <span>Fee Management</span>
     </a>
 </li>
 <li class="nav-item">
-    <a class="nav-link" href="{{ url_for('send_sms_page') }}">
+    <a class="nav-link {% if request.endpoint in ['manage_class_fees', 'add_class_fee'] %}active{% endif %}" href="{{ url_for('manage_class_fees') }}">
+        <i class="bi bi-diagram-3"></i> <span>Class Fees</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link {% if request.endpoint == 'send_sms_page' %}active{% endif %}" href="{{ url_for('send_sms_page') }}">
         <i class="bi bi-chat-dots"></i> <span>Send SMS</span>
     </a>
 </li>
 <li class="nav-item">
-    <a class="nav-link" href="{{ url_for('profile') }}">
-        <i class="bi bi-person"></i> <span>My Profile</span>
+    <a class="nav-link {% if request.endpoint in ['manage_notifications_page', 'send_notification', 'delete_notification'] %}active{% endif %}" href="{{ url_for('manage_notifications_page') }}">
+        <i class="bi bi-bell"></i> <span>Notifications</span>
+    </a>
+</li>
+<li class="nav-item mt-3">
+    <a class="nav-link {% if request.endpoint == 'profile' %}active{% endif %}" href="{{ url_for('profile') }}">
+        <i class="bi bi-person-circle"></i> <span>My Profile</span>
     </a>
 </li>
 <li class="nav-item">
-    <a class="nav-link {% if request.endpoint == 'manage_class_fees' %}active{% endif %}" href="{{ url_for('manage_class_fees') }}">
-        <i class="bi bi-cash-stack"></i> <span>Class-wise Fees</span>
+    <a class="nav-link" href="{{ url_for('admin_attendance_report') }}">
+        <i class="bi bi-calendar-check"></i> <span>Attendance Report</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link text-danger" href="{{ url_for('logout') }}">
+        <i class="bi bi-box-arrow-right"></i> <span>Logout</span>
     </a>
 </li>

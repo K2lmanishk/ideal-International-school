@@ -617,6 +617,89 @@ def view_attendance():
         attendance = db.session.query(Attendance, Subject).join(Subject).filter(Attendance.student_id == student.id).all()
     return render_template('student_attendance.html', attendance=attendance)
 
+# ============================================
+# ADMIN ATTENDANCE REPORT
+# ============================================
+
+@app.route('/admin/attendance-report')
+@login_required
+def admin_attendance_report():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+
+    # ✅ REPLACE dynamic query with static list of all classes
+    all_classes = [
+        'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
+        'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
+        'Class 11 Science', 'Class 11 Commerce', 'Class 11 Arts',
+        'Class 12 Science', 'Class 12 Commerce', 'Class 12 Arts'
+    ]
+
+    subjects = Subject.query.all()
+
+    selected_class = request.args.get('class_name')
+    selected_subject = request.args.get('subject_id', type=int)
+    students_data = []
+
+    if selected_class:
+        student_list = Student.query.filter_by(class_name=selected_class).all()
+        for student in student_list:
+            att_query = Attendance.query.filter_by(student_id=student.id)
+            if selected_subject:
+                att_query = att_query.filter_by(subject_id=selected_subject)
+            records = att_query.all()
+            total = len(records)
+            present = sum(1 for r in records if r.status == 'Present')
+            percent = (present / total * 100) if total > 0 else 0
+            students_data.append({
+                'student': student,
+                'total': total,
+                'present': present,
+                'absent': total - present,
+                'percent': round(percent, 1)
+            })
+
+    selected_subject_obj = Subject.query.get(selected_subject) if selected_subject else None
+
+    return render_template('admin_attendance_report.html',
+                           classes=all_classes,          # ✅ pass the static list
+                           subjects=subjects,
+                           selected_class=selected_class,
+                           selected_subject=selected_subject,
+                           selected_subject_obj=selected_subject_obj,
+                           students=students_data)
+
+# ============================================
+# API: SUBJECT-WISE ATTENDANCE FOR A STUDENT
+# ============================================
+
+@app.route('/api/student-subject-attendance/<int:student_id>')
+@login_required
+def student_subject_attendance(student_id):
+    if current_user.role not in ['admin', 'faculty']:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    student = Student.query.get_or_404(student_id)
+    # Get all subjects that have attendance records for this student
+    subjects_with_attendance = db.session.query(Attendance.subject_id).filter_by(student_id=student.id).distinct().all()
+    subject_ids = [s[0] for s in subjects_with_attendance]
+    subjects = Subject.query.filter(Subject.id.in_(subject_ids)).all()
+    
+    result = []
+    for sub in subjects:
+        records = Attendance.query.filter_by(student_id=student.id, subject_id=sub.id).all()
+        total = len(records)
+        present = sum(1 for r in records if r.status == 'Present')
+        absent = total - present
+        result.append({
+            'subject_name': f"{sub.name} ({sub.code})",
+            'total': total,
+            'present': present,
+            'absent': absent,
+        })
+    
+    return jsonify(result)
+
 @app.route('/student/marks')
 @login_required
 def view_marks():
@@ -1058,4 +1141,4 @@ if __name__ == '__main__':
             db.session.commit()
             print("✅ Demo student created")
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=port)

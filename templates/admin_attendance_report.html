@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mt-4">
+    <i class="bi bi-calendar-check me-2"></i>Attendance Report (Admin)
+</h1>
+<ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active">Attendance Report</li>
+</ol>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <i class="bi bi-funnel me-2"></i>Filter by Class & Subject
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('admin_attendance_report') }}" class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label">Class <span class="text-danger">*</span></label>
+                <select name="class_name" class="form-select" required>
+                    <option value="">-- Select Class --</option>
+                    {% for cls in classes %}
+                    <option value="{{ cls }}" {% if selected_class == cls %}selected{% endif %}>{{ cls }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Subject (Optional)</label>
+                <select name="subject_id" class="form-select">
+                    <option value="">-- All Subjects --</option>
+                    {% for sub in subjects %}
+                    <option value="{{ sub.id }}" {% if selected_subject == sub.id %}selected{% endif %}>
+                        {{ sub.name }} ({{ sub.code }}) - {{ sub.class_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted">Leave blank to see overall attendance across all subjects.</small>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i> Show Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if selected_class %}
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <i class="bi bi-people-fill me-2"></i>
+        Attendance Summary for <strong>{{ selected_class }}</strong>
+        {% if selected_subject_obj %} – Subject: {{ selected_subject_obj.name }}{% endif %}
+    </div>
+    <div class="card-body">
+        {% if students %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Roll No</th>
+                        <th>Student Name</th>
+                        <th>Total Classes</th>
+                        <th>Present</th>
+                        <th>Absent</th>
+                        <th>Attendance %</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in students %}
+                    <tr>
+                        <td>{{ item.student.roll_no }}</td>
+                        <td>{{ item.student.user.full_name }}</td>
+                        <td>{{ item.total }}</td>
+                        <td class="text-success fw-bold">{{ item.present }}</td>
+                        <td class="text-danger">{{ item.absent }}</td>
+                        <td>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar 
+                                    {% if item.percent >= 75 %}bg-success
+                                    {% elif item.percent >= 60 %}bg-info
+                                    {% elif item.percent >= 45 %}bg-warning
+                                    {% else %}bg-danger{% endif %}" 
+                                    role="progressbar" 
+                                    style="width: {{ item.percent }}%;" 
+                                    aria-valuenow="{{ item.percent }}" 
+                                    aria-valuemin="0" 
+                                    aria-valuemax="100">
+                                    {{ item.percent }}%
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if item.percent >= 75 %}
+                                <span class="badge bg-success">Good</span>
+                            {% elif item.percent >= 60 %}
+                                <span class="badge bg-info">Average</span>
+                            {% elif item.percent >= 45 %}
+                                <span class="badge bg-warning">Low</span>
+                            {% else %}
+                                <span class="badge bg-danger">Critical</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-info" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#detailModal"
+                                    data-student-id="{{ item.student.id }}"
+                                    data-student-name="{{ item.student.user.full_name }}"
+                                    data-class="{{ selected_class }}">
+                                <i class="bi bi-eye"></i> Subject-wise
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-calendar-x fs-1 opacity-25"></i>
+            <p class="mt-3">No attendance records found for this class.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal for Subject-wise Detailed Attendance -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-journal-bookmark-fill me-2"></i>
+                    Subject-wise Attendance
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBodyContent">
+                <p class="text-center">Loading...</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Load detailed attendance when modal opens
+    const detailModal = document.getElementById('detailModal');
+    detailModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const studentId = button.getAttribute('data-student-id');
+        const studentName = button.getAttribute('data-student-name');
+        const className = button.getAttribute('data-class');
+        
+        const modalBody = document.getElementById('modalBodyContent');
+        modalBody.innerHTML = '<div class="text-center"><div class="spinner-border text-primary"></div><p>Loading subject-wise attendance...</p></div>';
+        
+        // Fetch subject-wise attendance data
+        fetch(`/api/student-subject-attendance/${studentId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    modalBody.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                    return;
+                }
+                let html = `<h6 class="mb-3">Student: <strong>${studentName}</strong> (${className})</h6>`;
+                html += `<div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr><th>Subject</th><th>Total Classes</th><th>Present</th><th>Absent</th><th>%</th></tr>
+                                </thead>
+                                <tbody>`;
+                for (const sub of data) {
+                    let percent = (sub.present / sub.total * 100).toFixed(1);
+                    let barColor = percent >= 75 ? 'success' : (percent >= 60 ? 'info' : (percent >= 45 ? 'warning' : 'danger'));
+                    html += `<tr>
+                                <td>${sub.subject_name}</td>
+                                <td>${sub.total}</td>
+                                <td class="text-success">${sub.present}</td>
+                                <td class="text-danger">${sub.absent}</td>
+                                <td>
+                                    <div class="progress" style="height: 18px;">
+                                        <div class="progress-bar bg-${barColor}" style="width: ${percent}%;">${percent}%</div>
+                                    </div>
+                                </td>
+                             </tr>`;
+                }
+                html += `</tbody></table></div>`;
+                modalBody.innerHTML = html;
+            })
+            .catch(err => {
+                modalBody.innerHTML = `<div class="alert alert-danger">Failed to load details: ${err.message}</div>`;
+            });
+    });
+</script>
+{% endblock %}
