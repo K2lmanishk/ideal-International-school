@@ -748,9 +748,10 @@ def student_id_card():
 @app.route('/student/qrcode/<roll_no>')
 @login_required
 def generate_qr(roll_no):
-    data = f"{roll_no}|{url_for('mark_attendance', _external=True)}"
+    # स्कूल की मुख्य वेबसाइट (अपना लाइव URL डालें)
+    school_website = "https://www.iistsiwan.com/"  # या अपना डोमेन
     qr = qrcode.QRCode(version=1, box_size=10, border=2)
-    qr.add_data(data)
+    qr.add_data(school_website)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     buf = io.BytesIO()
