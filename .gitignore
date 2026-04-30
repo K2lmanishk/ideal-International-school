@@ -14,7 +14,7 @@ ENV/
 instance/
 
 # Uploads
-static/uploads/*
+# static/uploads/*
 
 # Secrets
 config.py
