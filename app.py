@@ -909,15 +909,29 @@ def mark_all_notifications_read():
 def get_students_by_subject(subject_id):
     subject = Subject.query.get(subject_id)
     if not subject:
+        return jsonify({"error": "Subject not found"}), 404
+    
+    # Get the class name from the subject
+    class_name = subject.class_name
+    if not class_name:
         return jsonify([])
-    students = Student.query.filter_by(class_name=subject.class_name).all()
-    return jsonify([{
-        'id': s.id,
-        'roll_no': s.roll_no,
-        'name': s.user.full_name,
-        # Add this line:
-        'phone': s.phone or ''
-    } for s in students])
+    
+    # Query students belonging to that class
+    students = Student.query.filter_by(class_name=class_name).all()
+    
+    result = []
+    for s in students:
+        result.append({
+            'id': s.id,
+            'roll_no': s.roll_no,
+            'name': s.user.full_name if s.user else f"Student {s.id}",
+            'phone': s.phone or ''
+        })
+    
+    # Log for debugging (optional – will appear in Render logs)
+    app.logger.info(f"Subject: {subject.name} (class: {class_name}) -> Found {len(result)} students")
+    
+    return jsonify(result)
 
 
 @app.route('/admin/send-sms')
@@ -1094,6 +1108,8 @@ def setup_db():
     except Exception as e:
         return f"❌ Error: {str(e)}"
 
+
+
 @app.route('/api/get_course_details/<int:course_id>')
 @login_required
 def get_course_details(course_id):
@@ -1109,6 +1125,204 @@ def get_course_details(course_id):
         'subjects': [{'id': s.id, 'name': s.name, 'code': s.code, 'class_name': s.class_name} for s in subjects]
     })
 
+def create_demo_data():
+    """Create 10 students, subjects, faculty assignments, and timetable if not exist"""
+    from datetime import datetime, timedelta
+
+    # ----- Ensure Faculty exists -----
+    faculty_user = User.query.filter_by(username="faculty1").first()
+    if not faculty_user:
+        faculty_user = User(
+            username="faculty1",
+            email="faculty@school.com",
+            password_hash=generate_password_hash("pass123"),
+            role="faculty",
+            full_name="Dr. John Smith"
+        )
+        db.session.add(faculty_user)
+        db.session.flush()
+        faculty = Faculty(
+            user_id=faculty_user.id,
+            department="Science",
+            designation="Senior Teacher",
+            qualification="Ph.D.",
+            joining_date=datetime.utcnow().date()
+        )
+        db.session.add(faculty)
+        print("✅ Faculty created")
+    else:
+        faculty = Faculty.query.filter_by(user_id=faculty_user.id).first()
+        if not faculty:
+            faculty = Faculty(
+                user_id=faculty_user.id,
+                department="Science",
+                designation="Senior Teacher",
+                qualification="Ph.D.",
+                joining_date=datetime.utcnow().date()
+            )
+            db.session.add(faculty)
+            db.session.flush()
+
+    # ----- Create Demo Students (10) -----
+    demo_students = [
+        {"username": "student1", "roll": "KD2024001", "class": "Class 10", "phone": "+919876543210", "name": "Aarav Sharma"},
+        {"username": "student2", "roll": "KD2024002", "class": "Class 10", "phone": "+919876543211", "name": "Vivaan Gupta"},
+        {"username": "student3", "roll": "KD2024003", "class": "Class 9", "phone": "+919876543212", "name": "Ananya Singh"},
+        {"username": "student4", "roll": "KD2024004", "class": "Class 9", "phone": "+919876543213", "name": "Diya Verma"},
+        {"username": "student5", "roll": "KD2024005", "class": "Class 11 Science", "phone": "+919876543214", "name": "Aditya Kumar"},
+        {"username": "student6", "roll": "KD2024006", "class": "Class 11 Commerce", "phone": "+919876543215", "name": "Kavya Reddy"},
+        {"username": "student7", "roll": "KD2024007", "class": "Class 12 Science", "phone": "+919876543216", "name": "Rohan Mehta"},
+        {"username": "student8", "roll": "KD2024008", "class": "Class 12 Commerce", "phone": "+919876543217", "name": "Sneha Patil"},
+        {"username": "student9", "roll": "KD2024009", "class": "Class 8", "phone": "+919876543218", "name": "Ishaan Nair"},
+        {"username": "student10", "roll": "KD2024010", "class": "Class 7", "phone": "+919876543219", "name": "Navya Joshi"}
+    ]
+    
+    for s in demo_students:
+        if not User.query.filter_by(username=s["username"]).first():
+            user = User(
+                username=s["username"],
+                email=f"{s['username']}@school.com",
+                password_hash=generate_password_hash("pass123"),
+                role="student",
+                full_name=s["name"]
+            )
+            db.session.add(user)
+            db.session.flush()
+            student = Student(
+                user_id=user.id,
+                roll_no=s["roll"],
+                class_name=s["class"],
+                phone=s["phone"]
+            )
+            db.session.add(student)
+            print(f"✅ Added student: {s['username']} ({s['class']})")
+
+    # ----- Create Subjects (if not exist) -----
+    subject_list = [
+        {"name": "Mathematics", "code": "MATH101", "class": "Class 10", "credits": 5, "type": "Theory"},
+        {"name": "Science", "code": "SCI101", "class": "Class 10", "credits": 5, "type": "Theory"},
+        {"name": "English", "code": "ENG101", "class": "Class 10", "credits": 4, "type": "Language"},
+        {"name": "Physics", "code": "PHY101", "class": "Class 11 Science", "credits": 5, "type": "Theory"},
+        {"name": "Chemistry", "code": "CHE101", "class": "Class 11 Science", "credits": 5, "type": "Theory"},
+        {"name": "Accounts", "code": "ACC101", "class": "Class 11 Commerce", "credits": 5, "type": "Theory"},
+        {"name": "Business Studies", "code": "BS101", "class": "Class 11 Commerce", "credits": 5, "type": "Theory"},
+        {"name": "History", "code": "HIS101", "class": "Class 9", "credits": 4, "type": "Theory"},
+        {"name": "Geography", "code": "GEO101", "class": "Class 9", "credits": 4, "type": "Theory"}
+    ]
+    for sub in subject_list:
+        if not Subject.query.filter_by(code=sub["code"]).first():
+            subject = Subject(
+                name=sub["name"],
+                code=sub["code"],
+                class_name=sub["class"],
+                credits=sub["credits"],
+                type=sub["type"]
+            )
+            db.session.add(subject)
+            print(f"✅ Added subject: {sub['name']} for {sub['class']}")
+    
+    db.session.commit()
+    
+    # ----- Assign Faculty to Subjects (match by class) -----
+    subjects = Subject.query.all()
+    faculty_assignments_created = 0
+    for sub in subjects:
+        # Assign faculty only if not already assigned
+        if not FacultyAssignment.query.filter_by(faculty_id=faculty.id, subject_id=sub.id).first():
+            assignment = FacultyAssignment(
+                faculty_id=faculty.id,
+                subject_id=sub.id,
+                academic_year="2024-2026"
+            )
+            db.session.add(assignment)
+            faculty_assignments_created += 1
+            print(f"✅ Assigned {faculty_user.full_name} to {sub.name} ({sub.class_name})")
+    
+    # ----- Add Timetable entries for Class 10 -----
+    class_10_subjects = Subject.query.filter_by(class_name="Class 10").all()
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    time_slots = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00']
+    for i, sub in enumerate(class_10_subjects):
+        if not Timetable.query.filter_by(class_name="Class 10", subject_id=sub.id).first():
+            tt = Timetable(
+                class_name="Class 10",
+                day=days[i % len(days)],
+                time_slot=time_slots[i % len(time_slots)],
+                subject_id=sub.id,
+                faculty_id=faculty.id,
+                room_no=f"Room {i+101}"
+            )
+            db.session.add(tt)
+            print(f"✅ Added timetable: {sub.name} on {tt.day} at {tt.time_slot}")
+    
+    db.session.commit()
+    print(f"✅ Demo data creation complete. Faculty assignments: {faculty_assignments_created}")
+
+@app.route('/admin/user/get/<int:user_id>')
+@login_required
+def get_user_json(user_id):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    user = User.query.get_or_404(user_id)
+    result = {
+        'id': user.id,
+        'username': user.username,
+        'full_name': user.full_name,
+        'email': user.email,
+        'role': user.role
+    }
+    if user.role == 'student' and user.student_profile:
+        s = user.student_profile
+        result.update({
+            'roll_no': s.roll_no,
+            'class_name': s.class_name,
+            'course_id': s.course_id,
+            'dob': s.dob.strftime('%Y-%m-%d') if s.dob else '',
+            'phone': s.phone or '',
+            'address': s.address or '',
+            'parent_contact': s.parent_contact or ''
+        })
+    elif user.role == 'faculty' and user.faculty_profile:
+        f = user.faculty_profile
+        result.update({
+            'department': f.department or '',
+            'designation': f.designation or '',
+            'qualification': f.qualification or '',
+            'joining_date': f.joining_date.strftime('%Y-%m-%d') if f.joining_date else ''
+        })
+    return jsonify(result)
+
+@app.route('/admin/user/edit/<int:user_id>', methods=['POST'])
+@login_required
+def edit_user(user_id):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    user = User.query.get_or_404(user_id)
+    data = request.form
+    user.full_name = data.get('full_name', user.full_name)
+    if user.role == 'student':
+        student = Student.query.filter_by(user_id=user.id).first()
+        if student:
+            student.roll_no = data.get('roll_no', student.roll_no)
+            student.class_name = data.get('class_name', student.class_name)
+            student.phone = data.get('phone', student.phone)
+            student.address = data.get('address', student.address)
+            student.parent_contact = data.get('parent_contact', student.parent_contact)
+            if data.get('dob'):
+                student.dob = datetime.strptime(data['dob'], '%Y-%m-%d').date()
+            if data.get('course_id'):
+                student.course_id = int(data['course_id'])
+    elif user.role == 'faculty':
+        faculty = Faculty.query.filter_by(user_id=user.id).first()
+        if faculty:
+            faculty.department = data.get('department', faculty.department)
+            faculty.designation = data.get('designation', faculty.designation)
+            faculty.qualification = data.get('qualification', faculty.qualification)
+            if data.get('joining_date'):
+                faculty.joining_date = datetime.strptime(data['joining_date'], '%Y-%m-%d').date()
+    db.session.commit()
+    flash('User updated successfully!', 'success')
+    return redirect(url_for('manage_users'))
 
 # ============================================
 # 15. MAIN
