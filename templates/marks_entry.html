@@ -13,137 +13,91 @@
         <form method="POST" id="marksForm">
             <div class="row">
                 <div class="col-md-4">
-                    <div class="mb-3">
-                        <label class="form-label">Subject</label>
-                        <select class="form-select" name="subject_id" id="subjectSelect" required>
-                            <option value="">Select Subject</option>
-                            {% for assignment in assignments %}
-                            <option value="{{ assignment.subject.id }}">{{ assignment.subject.name }} ({{ assignment.subject.class_name }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                    <label>Subject</label>
+                    <select class="form-select" name="subject_id" id="subjectSelect" required>
+                        <option value="">-- Select Subject --</option>
+                        {% for assignment in assignments %}
+                        <option value="{{ assignment.subject.id }}">{{ assignment.subject.name }} ({{ assignment.subject.class_name }})</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="col-md-3">
-                    <div class="mb-3">
-                        <label class="form-label">Exam Type</label>
-                        <select class="form-select" name="exam_type" required>
-                            <option value="Unit Test 1">Unit Test 1</option>
-                            <option value="Unit Test 2">Unit Test 2</option>
-                            <option value="Half Yearly">Half Yearly</option>
-                            <option value="Pre-Board">Pre-Board</option>
-                            <option value="Final Exam">Final Exam</option>
-                        </select>
-                    </div>
+                    <label>Exam Type</label>
+                    <select class="form-select" name="exam_type" id="examType" required>
+                        <option value="Unit Test 1">Unit Test 1</option>
+                        <option value="Unit Test 2">Unit Test 2</option>
+                        <option value="Half Yearly">Half Yearly</option>
+                        <option value="Pre-Board">Pre-Board</option>
+                        <option value="Final Exam">Final Exam</option>
+                    </select>
                 </div>
                 <div class="col-md-3">
-                    <div class="mb-3">
-                        <label class="form-label">Maximum Marks</label>
-                        <input type="number" class="form-control" name="max_marks" id="maxMarks" placeholder="e.g., 100" required>
-                    </div>
+                    <label>Maximum Marks</label>
+                    <input type="number" class="form-control" name="max_marks" id="maxMarks" placeholder="e.g., 100" required>
                 </div>
                 <div class="col-md-2">
-                    <div class="mb-3">
-                        <label class="form-label">&nbsp;</label>
-                        <button type="button" class="btn btn-info d-block w-100" onclick="loadStudentsForMarks()">
-                            <i class="bi bi-people-fill me-1"></i>Load
-                        </button>
-                    </div>
+                    <button type="button" class="btn btn-info mt-4" onclick="loadStudents()">Load Students</button>
                 </div>
             </div>
             
-            <div id="studentMarksList" style="display: none;">
-                <hr>
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-                    <h5>Enter Marks</h5>
-                    <div>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="downloadMarksTemplate()">
-                            <i class="bi bi-download"></i> Download Template
-                        </button>
-                    </div>
-                </div>
+            <div id="studentMarksList" style="display:none; margin-top:20px;">
+                <h5>Enter Marks</h5>
                 <div class="table-responsive">
                     <table class="table table-bordered">
                         <thead class="table-dark">
-                            <tr>
-                                <th>Roll No</th>
-                                <th>Student Name</th>
-                                <th>Marks Obtained (Out of <span id="maxMarksDisplay">0</span>)</th>
-                            </tr>
+                            <tr><th>Roll No</th><th>Student Name</th><th>Marks (Out of <span id="maxMarksDisplay">0</span>)</th></tr>
                         </thead>
-                        <tbody id="studentMarksTableBody">
-                        </tbody>
+                        <tbody id="studentMarksTableBody"></tbody>
                     </table>
                 </div>
-                <button type="submit" class="btn btn-primary mt-3">
-                    <i class="bi bi-save me-2"></i>Save Marks
-                </button>
+                <button type="submit" class="btn btn-primary mt-2">Save Marks</button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-function loadStudentsForMarks() {
-    var subjectId = document.getElementById('subjectSelect').value;
-    var maxMarks = document.getElementById('maxMarks').value;
+function loadStudents() {
+    const subjectId = document.getElementById('subjectSelect').value;
+    const maxMarks = document.getElementById('maxMarks').value;
     
-    if (!subjectId) {
-        alert('Please select a subject');
-        return;
-    }
-    if (!maxMarks || maxMarks <= 0) {
-        alert('Please enter maximum marks');
-        return;
-    }
+    if (!subjectId) { alert('Please select a subject'); return; }
+    if (!maxMarks || maxMarks <= 0) { alert('Please enter maximum marks'); return; }
     
-    document.getElementById('maxMarksDisplay').textContent = maxMarks;
-    showToast('Loading students...', 'info');
+    document.getElementById('maxMarksDisplay').innerText = maxMarks;
+    const tbody = document.getElementById('studentMarksTableBody');
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center">Loading...<\/td><\/tr>';
+    document.getElementById('studentMarksList').style.display = 'block';
     
-    fetch('/api/get_students_by_subject/' + subjectId)
+    fetch(`/api/get_students_by_subject/${subjectId}`)
         .then(response => response.json())
         .then(data => {
-            var tbody = document.getElementById('studentMarksTableBody');
-            var html = '';
+            if (data.error) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-danger">API Error: ${data.error}<\/td><\/tr>`;
+                return;
+            }
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-warning">No students found for this subject/class.<\/td><\/tr>';
+                return;
+            }
+            
+            let html = '';
             data.forEach(student => {
-                html += '<tr>' +
-                    '<td>' + student.roll_no + '</td>' +
-                    '<td>' + student.name + '</td>' +
-                    '<td>' +
-                        '<input type="number" class="form-control" name="marks_' + student.id + '" ' +
-                        'min="0" max="' + maxMarks + '" step="0.5" placeholder="Enter marks">' +
-                    '</td>' +
-                '</tr>';
+                html += `<tr>
+                    <td>${student.roll_no}<\/td>
+                    <td>${student.name}<\/td>
+                    <td>
+                        <input type="number" class="form-control" name="marks_${student.id}" 
+                               min="0" max="${maxMarks}" step="0.5" placeholder="Enter marks">
+                    <\/td>
+                <\/tr>`;
             });
             tbody.innerHTML = html;
-            document.getElementById('studentMarksList').style.display = 'block';
-            showToast(data.length + ' students loaded', 'success');
         })
         .catch(error => {
-            console.error('Error:', error);
-            showToast('Error loading students', 'danger');
+            console.error('Fetch error:', error);
+            tbody.innerHTML = `<tr><td colspan="3" class="text-danger">Network error: ${error.message}<\/td><\/tr>`;
         });
-}
-
-function downloadMarksTemplate() {
-    var subjectSelect = document.getElementById('subjectSelect');
-    var subjectName = subjectSelect.options[subjectSelect.selectedIndex]?.text || 'Subjects';
-    var maxMarks = document.getElementById('maxMarks').value;
-    
-    var rows = document.querySelectorAll('#studentMarksTableBody tr');
-    var csv = 'Roll No,Student Name,Marks (Out of ' + maxMarks + ')\n';
-    
-    rows.forEach(row => {
-        var cells = row.cells;
-        csv += '"' + cells[0].textContent + '","' + cells[1].textContent + '",\n';
-    });
-    
-    var blob = new Blob([csv], { type: 'text/csv' });
-    var link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = subjectName.replace(/[^a-zA-Z0-9]/g, '_') + '_marks_template.csv';
-    link.click();
-    URL.revokeObjectURL(link.href);
-    showToast('Template downloaded', 'success');
 }
 </script>
 {% endblock %}
