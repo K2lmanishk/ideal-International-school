@@ -16,7 +16,7 @@
                     <div class="mb-3">
                         <label class="form-label">Subject</label>
                         <select class="form-select" name="subject_id" id="subjectSelect" required>
-                            <option value="">Select Subject</option>
+                            <option value="">-- Select Subject --</option>
                             {% for assignment in assignments %}
                             <option value="{{ assignment.subject.id }}">{{ assignment.subject.name }} ({{ assignment.subject.class_name }})</option>
                             {% endfor %}
@@ -55,19 +55,12 @@
                 <div class="table-responsive">
                     <table class="table table-bordered">
                         <thead class="table-dark">
-                            <tr>
-                                <th>Roll No</th>
-                                <th>Student Name</th>
-                                <th>Status</th>
-                            </tr>
+                            <tr><th>Roll No</th><th>Student Name</th><th>Status</th><th>WhatsApp Alert</th></tr>
                         </thead>
-                        <tbody id="studentTableBody">
-                        </tbody>
+                        <tbody id="studentTableBody"></tbody>
                     </table>
                 </div>
-                <button type="submit" class="btn btn-primary mt-3">
-                    <i class="bi bi-save me-2"></i>Save Attendance
-                </button>
+                <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-save me-2"></i>Save Attendance</button>
             </div>
         </form>
     </div>
@@ -76,50 +69,70 @@
 <script>
 function loadStudentsForSubject() {
     var subjectId = document.getElementById('subjectSelect').value;
-    if (!subjectId) {
-        alert('Please select a subject');
-        return;
-    }
-    
-    showToast('Loading students...', 'info');
+    if (!subjectId) { alert('Please select a subject'); return; }
+    var tbody = document.getElementById('studentTableBody');
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center">Loading...</td></tr>';
+    document.getElementById('studentList').style.display = 'block';
     
     fetch('/api/get_students_by_subject/' + subjectId)
         .then(response => response.json())
         .then(data => {
-            var tbody = document.getElementById('studentTableBody');
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-warning">No students found for this subject/class.</td></tr>';
+                return;
+            }
             var html = '';
             data.forEach(student => {
-                html += '<tr>' +
-                    '<td>' + student.roll_no + '</td>' +
-                    '<td>' + student.name + '</td>' +
-                    '<td>' +
-                        '<select class="form-select" name="status_' + student.id + '">' +
-                            '<option value="Present" selected>✅ Present</option>' +
-                            '<option value="Absent">❌ Absent</option>' +
-                        '</select>' +
-                    '</td>' +
-                '</tr>';
+                var phone = student.phone || '';
+                // Always show button but will alert if no phone
+                var whatsappBtn = `<button class="btn btn-sm btn-success send-whatsapp-btn" 
+                    data-phone="${phone}" 
+                    data-name="${student.name.replace(/['"]/g, '\\"')}" 
+                    data-roll="${student.roll_no}">
+                    <i class="bi bi-whatsapp"></i> Alert
+                </button>`;
+                html += `<tr>
+                    <td>${student.roll_no}</td>
+                    <td>${student.name}</td>
+                    <td><select class="form-select" name="status_${student.id}">
+                        <option value="Present">✅ Present</option>
+                        <option value="Absent">❌ Absent</option>
+                    </select></td>
+                    <td>${whatsappBtn}</td>
+                </tr>`;
             });
             tbody.innerHTML = html;
-            document.getElementById('studentList').style.display = 'block';
-            showToast(data.length + ' students loaded', 'success');
+            
+            // Attach WhatsApp click handlers
+            document.querySelectorAll('.send-whatsapp-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const phone = this.dataset.phone;
+                    const name = this.dataset.name;
+                    const roll = this.dataset.roll;
+                    if (!phone || phone.trim() === '') {
+                        alert('No phone number available for this student. Please update in Admin panel.');
+                        return;
+                    }
+                    const subject = document.getElementById('subjectSelect').options[document.getElementById('subjectSelect').selectedIndex]?.text || 'Subject';
+                    const date = document.getElementById('attendanceDate').value;
+                    const message = `Dear Parent, your child ${name} (Roll No: ${roll}) was absent on ${date} for ${subject}. Please ensure regular attendance. - Ideal School`;
+                    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+                    window.open(url, '_blank');
+                });
+            });
         })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('Error loading students', 'danger');
+        .catch(err => {
+            console.error(err);
+            tbody.innerHTML = '<tr><td colspan="4" class="text-danger">Error loading students.</td></tr>';
         });
 }
 
 function markAllPresent() {
-    var selects = document.querySelectorAll('#studentTableBody select');
-    selects.forEach(select => select.value = 'Present');
-    showToast('All students marked present', 'success');
+    document.querySelectorAll('#studentTableBody select').forEach(s => s.value = 'Present');
 }
-
 function markAllAbsent() {
-    var selects = document.querySelectorAll('#studentTableBody select');
-    selects.forEach(select => select.value = 'Absent');
-    showToast('All students marked absent', 'warning');
+    document.querySelectorAll('#studentTableBody select').forEach(s => s.value = 'Absent');
 }
 </script>
 {% endblock %}
