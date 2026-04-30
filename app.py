@@ -904,6 +904,33 @@ def mark_all_notifications_read():
 # 12. SMS ROUTES
 # ============================================
 
+@app.route('/api/get_students_by_subject/<int:subject_id>')
+@login_required
+def get_students_by_subject(subject_id):
+    try:
+        subject = Subject.query.get(subject_id)
+        if not subject:
+            return jsonify({"error": f"Subject ID {subject_id} not found"}), 404
+        
+        class_name = subject.class_name
+        if not class_name:
+            return jsonify([])
+        
+        students = Student.query.filter_by(class_name=class_name).all()
+        result = []
+        for s in students:
+            result.append({
+                'id': s.id,
+                'roll_no': s.roll_no,
+                'name': s.user.full_name if s.user else f"Student {s.id}",
+                'phone': s.phone or ''
+            })
+        return jsonify(result)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        app.logger.error(f"API error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/admin/send-sms')
 @login_required

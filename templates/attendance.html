@@ -13,19 +13,17 @@
         <form method="POST" id="attendanceForm">
             <div class="row">
                 <div class="col-md-5">
-                    <div class="mb-3">
-                        <label class="form-label">Subject</label>
-                        <select class="form-select" name="subject_id" id="subjectSelect" required>
-                            <option value="">-- Select Subject --</option>
-                            {% for assignment in assignments %}
-                            <option value="{{ assignment.subject.id }}">{{ assignment.subject.name }} ({{ assignment.subject.class_name }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                    <label>Subject</label>
+                    <select class="form-select" name="subject_id" id="subjectSelect" required>
+                        <option value="">-- Select Subject --</option>
+                        {% for assignment in assignments %}
+                        <option value="{{ assignment.subject.id }}">{{ assignment.subject.name }} ({{ assignment.subject.class_name }})</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Date</label>
-                    <input type="date" class="form-control" name="date" id="attendanceDate" required value="{{ today }}">
+                    <label>Date</label>
+                    <input type="date" class="form-control" name="date" id="attendanceDate" value="{{ today }}">
                 </div>
                 <div class="col-md-4">
                     <button type="button" class="btn btn-info mt-4" onclick="loadStudents()">Load Students</button>
@@ -37,12 +35,12 @@
                 <div class="table-responsive">
                     <table class="table table-bordered">
                         <thead class="table-dark">
-                            <tr><th>Roll No</th><th>Student Name</th><th>Status</th><th>WhatsApp Alert</th></tr>
+                            <tr><th>Roll No</th><th>Student Name</th><th>Status</th><th>WhatsApp</th></tr>
                         </thead>
                         <tbody id="studentTableBody"></tbody>
                     </table>
                 </div>
-                <button type="submit" class="btn btn-primary">Save Attendance</button>
+                <button type="submit" class="btn btn-primary mt-2">Save Attendance</button>
             </div>
         </form>
     </div>
@@ -50,47 +48,53 @@
 
 <script>
 function loadStudents() {
-    var subjectId = document.getElementById('subjectSelect').value;
-    if (!subjectId) { alert('Select a subject first'); return; }
+    const subjectId = document.getElementById('subjectSelect').value;
+    if (!subjectId) {
+        alert('Please select a subject');
+        return;
+    }
     
-    var tbody = document.getElementById('studentTableBody');
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center">Loading...</td></tr>';
+    const tbody = document.getElementById('studentTableBody');
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center">Loading...<\/td><\/tr>';
     document.getElementById('studentList').style.display = 'block';
     
-    fetch('/api/get_students_by_subject/' + subjectId)
-        .then(res => res.json())
+    fetch(`/api/get_students_by_subject/${subjectId}`)
+        .then(response => response.json())
         .then(data => {
+            if (data.error) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-danger">API Error: ${data.error}<\/td><\/tr>`;
+                return;
+            }
             if (!data.length) {
-                tbody.innerHTML = '<tr><td colspan="4">No students found for this subject.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" class="text-warning">No students found for this subject/class.<\/td><\/tr>';
                 return;
             }
             
-            var html = '';
+            let html = '';
             data.forEach(student => {
-                // ALWAYS show the WhatsApp button, even if phone is empty
-                var phone = student.phone || '';
-                var whatsappBtn = `<button class="btn btn-sm btn-success whatsapp-btn" 
+                const phone = student.phone || '';
+                const whatsappBtn = `<button class="btn btn-sm btn-success whatsapp-btn" 
                     data-phone="${phone}" 
                     data-name="${student.name.replace(/['"]/g, '\\"')}" 
                     data-roll="${student.roll_no}">
-                    <i class="bi bi-whatsapp"></i> Send Alert
-                </button>`;
+                    <i class="bi bi-whatsapp"><\/i> Alert
+                <\/button>`;
                 
                 html += `<tr>
-                    <td>${student.roll_no}</td>
-                    <td>${student.name}</td>
+                    <td>${student.roll_no}<\/td>
+                    <td>${student.name}<\/td>
                     <td>
                         <select name="status_${student.id}" class="form-select">
-                            <option value="Present">Present</option>
-                            <option value="Absent">Absent</option>
-                        </select>
-                    </td>
-                    <td>${whatsappBtn}</td>
-                </tr>`;
+                            <option value="Present">✅ Present</option>
+                            <option value="Absent">❌ Absent</option>
+                        <\/select>
+                    <\/td>
+                    <td>${whatsappBtn}<\/td>
+                <\/tr>`;
             });
             tbody.innerHTML = html;
             
-            // Attach click handlers to WhatsApp buttons
+            // Attach WhatsApp click handlers
             document.querySelectorAll('.whatsapp-btn').forEach(btn => {
                 btn.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -108,9 +112,9 @@ function loadStudents() {
                 });
             });
         })
-        .catch(err => {
-            console.error(err);
-            tbody.innerHTML = '<tr><td colspan="4">Error loading students.</td></tr>';
+        .catch(error => {
+            console.error('Fetch error:', error);
+            tbody.innerHTML = `<tr><td colspan="4" class="text-danger">Network error: ${error.message}<\/td><\/tr>`;
         });
 }
 </script>
