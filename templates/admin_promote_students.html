@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mt-4">
+    <i class="bi bi-arrow-up-circle-fill me-2"></i>Student Promotion (Class-wise)
+</h1>
+<ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active">Promote Students</li>
+</ol>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <i class="bi bi-diagram-3 me-2"></i>Bulk Promotion
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Current Class</th>
+                            <th>Students Count</th>
+                            <th>Promote To</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cls in classes %}
+                        <tr>
+                            <td><strong>{{ cls }}</strong></td>
+                            <td>{{ class_counts[cls] }}</td>
+                            <td>
+                                <select name="promote_{{ cls }}" class="form-select">
+                                    <option value="">-- Select Target Class --</option>
+                                    {% for target in all_classes %}
+                                        {% if target != cls %}
+                                        <option value="{{ target }}">{{ target }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                             </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center text-warning">No students found in any class.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if classes %}
+            <div class="mt-3">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle me-2"></i>Promote Selected
+                </button>
+                <small class="text-muted ms-3">Only classes with a target selected will be promoted.</small>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}

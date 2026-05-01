@@ -372,6 +372,54 @@ def manage_notices():
     notices = Notice.query.order_by(Notice.created_at.desc()).all()
     return render_template('manage_notices.html', notices=notices)
 
+@app.route('/admin/promote-students', methods=['GET', 'POST'])
+@login_required
+def promote_students():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    
+    # Get all distinct class names from students
+    classes = db.session.query(Student.class_name).distinct().filter(Student.class_name.isnot(None)).all()
+    classes = [c[0] for c in classes if c[0]]
+    classes.sort()
+    
+    # Count students per class
+    class_counts = {}
+    for cls in classes:
+        class_counts[cls] = Student.query.filter_by(class_name=cls).count()
+    
+    # All possible target classes (full list)
+    all_classes = [
+        'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
+        'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
+        'Class 11 Science', 'Class 11 Commerce', 'Class 11 Arts',
+        'Class 12 Science', 'Class 12 Commerce', 'Class 12 Arts'
+    ]
+    
+    if request.method == 'POST':
+        promotions = {}
+        for key, value in request.form.items():
+            if key.startswith('promote_') and value:
+                source_class = key.replace('promote_', '')
+                promotions[source_class] = value
+        
+        promoted_count = 0
+        for source, target in promotions.items():
+            students = Student.query.filter_by(class_name=source).all()
+            for student in students:
+                student.class_name = target
+                # Optional: if moving to 11/12 and student has no course, you can set a default course (e.g., Science)
+                # but admin can update later.
+                promoted_count += 1
+        db.session.commit()
+        flash(f'{promoted_count} students promoted successfully!', 'success')
+        return redirect(url_for('promote_students'))
+    
+    return render_template('admin_promote_students.html',
+                           classes=classes,
+                           class_counts=class_counts,
+                           all_classes=all_classes)
+
 @app.route('/admin/view-marks')
 @login_required
 def admin_view_marks():
