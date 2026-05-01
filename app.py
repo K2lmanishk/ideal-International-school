@@ -1489,6 +1489,17 @@ def reject_admission(app_id):
     flash(f'Admission application for {application.full_name} has been rejected.', 'warning')
     return redirect(url_for('admin_admissions', status='pending'))
 
+@app.route('/admin/create-missing-tables')
+@login_required
+def create_missing_tables():
+    if current_user.role != 'admin':
+        return "Unauthorized", 403
+    try:
+        from models import AdmissionApplication
+        db.create_all()  # This will create any missing tables
+        return "✅ Tables created successfully. <a href='/admin/admissions'>Go to Admissions</a>"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
 # ============================================
 # 15. MAIN
 # ============================================
