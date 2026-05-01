@@ -8,7 +8,7 @@
 </ol>
 
 <div class="row">
-    <!-- Add User Form (Left Panel) -->
+    <!-- Add User Form -->
     <div class="col-md-4">
         <div class="card mb-4">
             <div class="card-header bg-primary text-white"><i class="bi bi-person-plus"></i> Add New User</div>
@@ -27,7 +27,6 @@
                             <option value="student">Student</option>
                         </select>
                     </div>
-                    
                     <div id="studentFields" style="display:none;">
                         <div class="mb-3"><label>Roll Number</label><input type="text" class="form-control" name="roll_no"></div>
                         <div class="mb-3">
@@ -61,21 +60,19 @@
                         <div class="mb-3"><label>Address</label><textarea class="form-control" name="address"></textarea></div>
                         <div class="mb-3"><label>Parent Contact</label><input type="text" class="form-control" name="parent_contact"></div>
                     </div>
-                    
                     <div id="facultyFields" style="display:none;">
                         <div class="mb-3"><label>Department</label><input type="text" class="form-control" name="department"></div>
                         <div class="mb-3"><label>Designation</label><input type="text" class="form-control" name="designation"></div>
                         <div class="mb-3"><label>Qualification</label><input type="text" class="form-control" name="qualification"></div>
                         <div class="mb-3"><label>Joining Date</label><input type="date" class="form-control" name="joining_date"></div>
                     </div>
-                    
                     <button type="submit" class="btn btn-primary w-100">Add User</button>
                 </form>
             </div>
         </div>
     </div>
-    
-    <!-- User List Table (Right Panel) -->
+
+    <!-- User List -->
     <div class="col-md-8">
         <div class="card mb-4">
             <div class="card-header bg-success text-white"><i class="bi bi-table"></i> User List</div>
@@ -83,7 +80,9 @@
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover">
                         <thead class="table-dark">
-                            <tr><th>ID</th><th>Username</th><th>Full Name</th><th>Email</th><th>Role</th><th>Class</th><th>Actions</th></tr>
+                            <tr>
+                                <th>ID</th><th>Username</th><th>Full Name</th><th>Email</th><th>Role</th><th>Class</th><th>Actions</th>
+                            </tr>
                         </thead>
                         <tbody>
                             {% for user in users %}
@@ -97,7 +96,10 @@
                                 <td>
                                     <button class="btn btn-sm btn-warning" onclick="editUser({{ user.id }})"><i class="bi bi-pencil"></i> Edit</button>
                                     <button class="btn btn-sm btn-danger" onclick="deleteUser({{ user.id }})"><i class="bi bi-trash"></i> Delete</button>
-                                  </td>
+                                    {% if user.role in ['student', 'faculty'] %}
+                                    <button class="btn btn-sm btn-info" onclick="showCredentials({{ user.id }}, '{{ user.username }}', '{{ user.full_name }}')"><i class="bi bi-key"></i> Credentials</button>
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -108,7 +110,7 @@
     </div>
 </div>
 
-<!-- Edit User Modal (with optional password reset) -->
+<!-- Edit User Modal (with editable username) -->
 <div class="modal fade" id="editUserModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -123,9 +125,12 @@
                         <label>Full Name</label>
                         <input type="text" class="form-control" name="full_name" id="editFullName" required>
                     </div>
-                    <!-- Optional password reset field -->
                     <div class="mb-3">
-                        <label class="form-label">New Password (leave blank to keep current)</label>
+                        <label>Username</label>
+                        <input type="text" class="form-control" name="username" id="editUsername" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>New Password (leave blank to keep current)</label>
                         <input type="password" class="form-control" name="new_password" id="editNewPassword" minlength="6">
                         <small class="text-muted">Minimum 6 characters. Only fill if you want to reset the password.</small>
                     </div>
@@ -178,6 +183,37 @@
     </div>
 </div>
 
+<!-- Credentials Modal (show username + reset password) -->
+<div class="modal fade" id="credentialsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="bi bi-key"></i> User Credentials</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="credUserId">
+                <div class="mb-3">
+                    <label><strong>Username</strong></label>
+                    <p id="credUsername" class="form-control-plaintext"></p>
+                </div>
+                <div class="mb-3">
+                    <label><strong>New Password (generated)</strong></label>
+                    <p id="credPassword" class="form-control-plaintext text-monospace"></p>
+                    <small class="text-muted">Copy this password and give it to the user.</small>
+                </div>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> Each time you click "Reset Password", a brand new random password will be generated and the old one will become invalid.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="resetAndShowPassword()">Reset Password & Display</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // Toggle add form fields based on role
 document.getElementById('roleSelect').addEventListener('change', function() {
@@ -207,7 +243,7 @@ function deleteUser(userId) {
     }
 }
 
-// Edit user: fetch data and show modal
+// Edit user: fetch data and show modal (includes username field)
 function editUser(userId) {
     fetch('/admin/user/get/' + userId)
         .then(response => response.json())
@@ -218,9 +254,9 @@ function editUser(userId) {
             }
             document.getElementById('editUserId').value = data.id;
             document.getElementById('editFullName').value = data.full_name;
+            document.getElementById('editUsername').value = data.username;
             document.getElementById('editUserForm').action = '/admin/user/edit/' + data.id;
-            // Clear password field (optional)
-            document.getElementById('editNewPassword').value = '';
+            document.getElementById('editNewPassword').value = ''; // clear password field
             
             if (data.role === 'student') {
                 document.getElementById('editStudentFields').style.display = 'block';
@@ -243,10 +279,40 @@ function editUser(userId) {
                 document.getElementById('editStudentFields').style.display = 'none';
                 document.getElementById('editFacultyFields').style.display = 'none';
             }
-            
             new bootstrap.Modal(document.getElementById('editUserModal')).show();
         })
         .catch(err => alert('Error loading user data: ' + err));
+}
+
+// Show credentials modal (just show existing username, password will be generated on request)
+function showCredentials(userId, username, fullName) {
+    document.getElementById('credUserId').value = userId;
+    document.getElementById('credUsername').innerText = username;
+    document.getElementById('credPassword').innerHTML = '<em>Click "Reset Password" to generate a new one</em>';
+    document.getElementById('credentialsModal').dataset.userId = userId;
+    new bootstrap.Modal(document.getElementById('credentialsModal')).show();
+}
+
+// Reset password and display the new one
+function resetAndShowPassword() {
+    const userId = document.getElementById('credUserId').value;
+    if (!userId) return;
+    fetch('/admin/reset-password-show/' + userId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: ''
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('credUsername').innerText = data.username;
+            document.getElementById('credPassword').innerHTML = `<code>${data.new_password}</code>`;
+            // Optionally, also update the displayed username in the modal title or anywhere
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(err => alert('Request failed: ' + err));
 }
 </script>
 {% endblock %}

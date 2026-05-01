@@ -1475,6 +1475,23 @@ def reject_admission(app_id):
     application.remarks = request.form.get('remarks', '')
     db.session.commit()
     return jsonify({'success': True})
+
+@app.route('/admin/user/edit/<int:user_id>', methods=['POST'])
+@login_required
+def edit_user(user_id):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    user = User.query.get_or_404(user_id)
+    data = request.form
+    user.full_name = data.get('full_name', user.full_name)
+    new_username = data.get('username', '').strip()
+    if new_username and new_username != user.username:
+        if User.query.filter_by(username=new_username).first():
+            flash('Username already taken!', 'danger')
+            return redirect(url_for('manage_users'))
+        user.username = new_username
+    # ... rest of the update logic (new_password, student/faculty fields) ...
+    
 @app.route('/admin/create-missing-tables')
 @login_required
 def create_missing_tables():
