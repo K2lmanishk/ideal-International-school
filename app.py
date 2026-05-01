@@ -1318,7 +1318,21 @@ def edit_user(user_id):
         return jsonify({'error': 'Unauthorized'}), 403
     user = User.query.get_or_404(user_id)
     data = request.form
+    # Update full name
     user.full_name = data.get('full_name', user.full_name)
+    # Update username if provided and not taken
+    new_username = data.get('username', '').strip()
+    if new_username and new_username != user.username:
+        if User.query.filter_by(username=new_username).first():
+            flash('Username already taken!', 'danger')
+            return redirect(url_for('manage_users'))
+        user.username = new_username
+    # Update password if provided
+    new_password = data.get('new_password', '')
+    if new_password and len(new_password) >= 6:
+        user.password_hash = generate_password_hash(new_password)
+        flash('Password updated!', 'success')
+    # Update student-specific fields
     if user.role == 'student':
         student = Student.query.filter_by(user_id=user.id).first()
         if student:
@@ -1330,7 +1344,7 @@ def edit_user(user_id):
             if data.get('dob'):
                 student.dob = datetime.strptime(data['dob'], '%Y-%m-%d').date()
             if data.get('course_id'):
-                student.course_id = int(data['course_id'])
+                student.course_id = int(data['course_id']) if data['course_id'] else None
     elif user.role == 'faculty':
         faculty = Faculty.query.filter_by(user_id=user.id).first()
         if faculty:
@@ -1342,6 +1356,18 @@ def edit_user(user_id):
     db.session.commit()
     flash('User updated successfully!', 'success')
     return redirect(url_for('manage_users'))
+
+@app.route('/admin/reset-password-show/<int:user_id>', methods=['POST'])
+@login_required
+def admin_reset_password_show(user_id):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    user = User.query.get_or_404(user_id)
+    import random, string
+    new_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    user.password_hash = generate_password_hash(new_password)
+    db.session.commit()
+    return jsonify({'success': True, 'new_password': new_password, 'username': user.username})
 
 class AdmissionApplication(db.Model):
     __tablename__ = 'admission_applications'
@@ -1476,22 +1502,7 @@ def reject_admission(app_id):
     db.session.commit()
     return jsonify({'success': True})
 
-@app.route('/admin/user/edit/<int:user_id>', methods=['POST'])
-@login_required
-def edit_user(user_id):
-    if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
-    user = User.query.get_or_404(user_id)
-    data = request.form
-    user.full_name = data.get('full_name', user.full_name)
-    new_username = data.get('username', '').strip()
-    if new_username and new_username != user.username:
-        if User.query.filter_by(username=new_username).first():
-            flash('Username already taken!', 'danger')
-            return redirect(url_for('manage_users'))
-        user.username = new_username
-    # ... rest of the update logic (new_password, student/faculty fields) ...
-    
+
 @app.route('/admin/create-missing-tables')
 @login_required
 def create_missing_tables():
