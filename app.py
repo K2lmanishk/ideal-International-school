@@ -1500,6 +1500,38 @@ def create_missing_tables():
         return "✅ Tables created successfully. <a href='/admin/admissions'>Go to Admissions</a>"
     except Exception as e:
         return f"❌ Error: {str(e)}"
+    
+@app.route('/admin/create-admission-table')
+@login_required
+def create_admission_table():
+    if current_user.role != 'admin':
+        return "Unauthorized", 403
+    try:
+        from sqlalchemy import text
+        sql = text("""
+        CREATE TABLE IF NOT EXISTS admission_applications (
+            id SERIAL PRIMARY KEY,
+            full_name VARCHAR(100) NOT NULL,
+            father_name VARCHAR(100),
+            mother_name VARCHAR(100),
+            dob DATE,
+            gender VARCHAR(10),
+            applying_class VARCHAR(50) NOT NULL,
+            phone VARCHAR(15),
+            email VARCHAR(120),
+            address TEXT,
+            previous_school VARCHAR(200),
+            status VARCHAR(20) DEFAULT 'pending',
+            remarks TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            approved_at TIMESTAMP
+        );
+        """)
+        db.session.execute(sql)
+        db.session.commit()
+        return "✅ Admission applications table created successfully! <a href='/admin/admissions'>Go to Admissions</a>"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
 # ============================================
 # 15. MAIN
 # ============================================
