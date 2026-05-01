@@ -25,13 +25,13 @@
                         <td>{{ app.id }}</td>
                         <td>{{ app.full_name }}</td>
                         <td>{{ app.applying_class }}</td>
-                        <td>{{ app.phone }}</td>
+                        <td>{{ app.phone or 'No phone' }}</td>
                         <td>{{ app.created_at.strftime('%d-%m-%Y') }}</td>
                         <td>
                             <a href="{{ url_for('view_admission', app_id=app.id) }}" class="btn btn-sm btn-info">View</a>
                             {% if current_status == 'pending' %}
-                            <button onclick="approve({{ app.id }})" class="btn btn-sm btn-success">Approve</button>
-                            <button onclick="reject({{ app.id }})" class="btn btn-sm btn-danger">Reject</button>
+                            <button onclick="approve({{ app.id }}, '{{ app.full_name }}', '{{ app.phone or '' }}')" class="btn btn-sm btn-success">Approve</button>
+                            <button onclick="reject({{ app.id }}, '{{ app.full_name }}', '{{ app.phone or '' }}')" class="btn btn-sm btn-danger">Reject</button>
                             {% endif %}
                          </td>
                     </tr>
@@ -45,40 +45,132 @@
     </div>
 </div>
 
+<!-- Include SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-function approve(appId) {
-    var remarks = prompt("Optional remarks for approval:", "");
-    if (remarks === null) return;
-    fetch('/admin/admission/approve/' + appId, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'remarks=' + encodeURIComponent(remarks || '')
-    })
-    .then(response => response.redirected ? window.location.href = response.url : response.json())
-    .then(data => {
-        if (data && data.error) alert(data.error);
-        else location.reload();
-    })
-    .catch(err => location.reload());
+function approve(appId, studentName, phone) {
+    Swal.fire({
+        title: 'Approve Admission',
+        html: `<p>Approve application for <strong>${studentName}</strong>?</p>
+               <textarea id="remarks" class="swal2-textarea" placeholder="Optional remarks"></textarea>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Approve',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            return { remarks: document.getElementById('remarks').value };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const remarks = result.value.remarks;
+            fetch('/admin/admission/approve/' + appId, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'remarks=' + encodeURIComponent(remarks || '')
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    Swal.fire('Error', data.error, 'error');
+                } else {
+                    Swal.fire({
+                        title: 'Approved!',
+                        text: `${studentName} has been approved.`,
+                        icon: 'success',
+                        showConfirmButton: true
+                    }).then(() => {
+                        if (phone) {
+                            const message = `Dear ${studentName}, your admission to Ideal International School has been APPROVED. Welcome! Login credentials will be sent shortly. - Ideal School`;
+                            const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+                            Swal.fire({
+                                title: 'Send WhatsApp?',
+                                text: 'Would you like to notify the student via WhatsApp?',
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonText: 'Yes, send!',
+                                cancelButtonText: 'No, thanks'
+                            }).then((whatsappResult) => {
+                                if (whatsappResult.isConfirmed) {
+                                    window.open(whatsappUrl, '_blank');
+                                }
+                                location.reload();
+                            });
+                        } else {
+                            location.reload();
+                        }
+                    });
+                }
+            })
+            .catch(err => location.reload());
+        }
+    });
 }
 
-function reject(appId) {
-    var reason = prompt("Reason for rejection:", "");
-    if (reason === null || reason.trim() === "") {
-        alert("Please provide a reason.");
-        return;
-    }
-    fetch('/admin/admission/reject/' + appId, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'remarks=' + encodeURIComponent(reason)
-    })
-    .then(response => response.redirected ? window.location.href = response.url : response.json())
-    .then(data => {
-        if (data && data.error) alert(data.error);
-        else location.reload();
-    })
-    .catch(err => location.reload());
+function reject(appId, studentName, phone) {
+    Swal.fire({
+        title: 'Reject Admission',
+        html: `<p>Reject application for <strong>${studentName}</strong>?</p>
+               <textarea id="remarks" class="swal2-textarea" placeholder="Reason for rejection (required)" required></textarea>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Reject',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const reason = document.getElementById('remarks').value.trim();
+            if (!reason) {
+                Swal.showValidationMessage('Please provide a reason');
+                return false;
+            }
+            return { remarks: reason };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const reason = result.value.remarks;
+            fetch('/admin/admission/reject/' + appId, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'remarks=' + encodeURIComponent(reason)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    Swal.fire('Error', data.error, 'error');
+                } else {
+                    Swal.fire({
+                        title: 'Rejected!',
+                        text: `${studentName} has been rejected.`,
+                        icon: 'warning',
+                        showConfirmButton: true
+                    }).then(() => {
+                        if (phone) {
+                            const message = `Dear ${studentName}, we regret to inform you that your admission application to Ideal International School has been REJECTED. Reason: ${reason}. - Ideal School`;
+                            const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+                            Swal.fire({
+                                title: 'Send WhatsApp?',
+                                text: 'Would you like to notify the student via WhatsApp?',
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonText: 'Yes, send!',
+                                cancelButtonText: 'No, thanks'
+                            }).then((whatsappResult) => {
+                                if (whatsappResult.isConfirmed) {
+                                    window.open(whatsappUrl, '_blank');
+                                }
+                                location.reload();
+                            });
+                        } else {
+                            location.reload();
+                        }
+                    });
+                }
+            })
+            .catch(err => location.reload());
+        }
+    });
 }
 </script>
 {% endblock %}
