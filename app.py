@@ -378,17 +378,14 @@ def admin_view_marks():
     if current_user.role != 'admin':
         return redirect(url_for('login'))
     
-    # All available classes from the student table
-    classes = db.session.query(Student.class_name).distinct().filter(Student.class_name.isnot(None)).all()
-    classes = [c[0] for c in classes if c[0]]
-    # Also include all classes from subject table (for classes with no students yet)
-    subject_classes = db.session.query(Subject.class_name).distinct().filter(Subject.class_name.isnot(None)).all()
-    for sc in subject_classes:
-        if sc[0] not in classes:
-            classes.append(sc[0])
-    classes.sort()
+    # Static list of all classes (1-12 with streams)
+    all_classes = [
+        'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
+        'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
+        'Class 11 Science', 'Class 11 Commerce', 'Class 11 Arts',
+        'Class 12 Science', 'Class 12 Commerce', 'Class 12 Arts'
+    ]
     
-    # Exam types
     exam_types = ['Unit Test 1', 'Unit Test 2', 'Half Yearly', 'Pre-Board', 'Final Exam']
     
     selected_class = request.args.get('class_name', '')
@@ -420,13 +417,13 @@ def admin_view_marks():
             })
     
     return render_template('admin_view_marks.html',
-                           classes=classes,
+                           classes=all_classes,
                            exam_types=exam_types,
                            selected_class=selected_class,
                            selected_exam=selected_exam,
                            subjects=subjects,
                            students_data=students_data)
-                           
+
 @app.route('/admin/notice/delete/<int:notice_id>', methods=['POST'])
 @login_required
 def delete_notice(notice_id):
