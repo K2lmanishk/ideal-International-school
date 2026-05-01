@@ -97,7 +97,7 @@
                                 <td>
                                     <button class="btn btn-sm btn-warning" onclick="editUser({{ user.id }})"><i class="bi bi-pencil"></i> Edit</button>
                                     <button class="btn btn-sm btn-danger" onclick="deleteUser({{ user.id }})"><i class="bi bi-trash"></i> Delete</button>
-                                 </td>
+                                  </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -108,7 +108,7 @@
     </div>
 </div>
 
-<!-- Edit User Modal -->
+<!-- Edit User Modal (with optional password reset) -->
 <div class="modal fade" id="editUserModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -119,8 +119,16 @@
             <form method="POST" id="editUserForm">
                 <div class="modal-body">
                     <input type="hidden" name="user_id" id="editUserId">
-                    <div class="mb-3"><label>Full Name</label><input type="text" class="form-control" name="full_name" id="editFullName" required></div>
-                    
+                    <div class="mb-3">
+                        <label>Full Name</label>
+                        <input type="text" class="form-control" name="full_name" id="editFullName" required>
+                    </div>
+                    <!-- Optional password reset field -->
+                    <div class="mb-3">
+                        <label class="form-label">New Password (leave blank to keep current)</label>
+                        <input type="password" class="form-control" name="new_password" id="editNewPassword" minlength="6">
+                        <small class="text-muted">Minimum 6 characters. Only fill if you want to reset the password.</small>
+                    </div>
                     <div id="editStudentFields" style="display:none;">
                         <div class="mb-3"><label>Roll Number</label><input type="text" class="form-control" name="roll_no" id="editRollNo"></div>
                         <div class="mb-3">
@@ -154,7 +162,6 @@
                         <div class="mb-3"><label>Address</label><textarea class="form-control" name="address" id="editAddress"></textarea></div>
                         <div class="mb-3"><label>Parent Contact</label><input type="text" class="form-control" name="parent_contact" id="editParentContact"></div>
                     </div>
-                    
                     <div id="editFacultyFields" style="display:none;">
                         <div class="mb-3"><label>Department</label><input type="text" class="form-control" name="department" id="editDepartment"></div>
                         <div class="mb-3"><label>Designation</label><input type="text" class="form-control" name="designation" id="editDesignation"></div>
@@ -172,72 +179,74 @@
 </div>
 
 <script>
-    // Toggle add form fields based on role
-    document.getElementById('roleSelect').addEventListener('change', function() {
-        const studentFields = document.getElementById('studentFields');
-        const facultyFields = document.getElementById('facultyFields');
-        if (this.value === 'student') {
-            studentFields.style.display = 'block';
-            facultyFields.style.display = 'none';
-        } else if (this.value === 'faculty') {
-            studentFields.style.display = 'none';
-            facultyFields.style.display = 'block';
-        } else {
-            studentFields.style.display = 'none';
-            facultyFields.style.display = 'none';
-        }
-    });
-    
-    // Delete user
-    function deleteUser(userId) {
-        if (confirm('Are you sure you want to delete this user?')) {
-            fetch('/admin/user/delete/' + userId, { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) location.reload();
-                    else alert('Error deleting user');
-                });
-        }
+// Toggle add form fields based on role
+document.getElementById('roleSelect').addEventListener('change', function() {
+    const studentFields = document.getElementById('studentFields');
+    const facultyFields = document.getElementById('facultyFields');
+    if (this.value === 'student') {
+        studentFields.style.display = 'block';
+        facultyFields.style.display = 'none';
+    } else if (this.value === 'faculty') {
+        studentFields.style.display = 'none';
+        facultyFields.style.display = 'block';
+    } else {
+        studentFields.style.display = 'none';
+        facultyFields.style.display = 'none';
     }
-    
-    // Edit user: fetch data and show modal
-    function editUser(userId) {
-        fetch('/admin/user/get/' + userId)
+});
+
+// Delete user
+function deleteUser(userId) {
+    if (confirm('Are you sure you want to delete this user?')) {
+        fetch('/admin/user/delete/' + userId, { method: 'POST' })
             .then(response => response.json())
             .then(data => {
-                if (data.error) {
-                    alert(data.error);
-                    return;
-                }
-                document.getElementById('editUserId').value = data.id;
-                document.getElementById('editFullName').value = data.full_name;
-                document.getElementById('editUserForm').action = '/admin/user/edit/' + data.id;
-                
-                if (data.role === 'student') {
-                    document.getElementById('editStudentFields').style.display = 'block';
-                    document.getElementById('editFacultyFields').style.display = 'none';
-                    document.getElementById('editRollNo').value = data.roll_no || '';
-                    document.getElementById('editClassName').value = data.class_name || '';
-                    document.getElementById('editCourseId').value = data.course_id || '';
-                    document.getElementById('editDob').value = data.dob || '';
-                    document.getElementById('editPhone').value = data.phone || '';
-                    document.getElementById('editAddress').value = data.address || '';
-                    document.getElementById('editParentContact').value = data.parent_contact || '';
-                } else if (data.role === 'faculty') {
-                    document.getElementById('editStudentFields').style.display = 'none';
-                    document.getElementById('editFacultyFields').style.display = 'block';
-                    document.getElementById('editDepartment').value = data.department || '';
-                    document.getElementById('editDesignation').value = data.designation || '';
-                    document.getElementById('editQualification').value = data.qualification || '';
-                    document.getElementById('editJoiningDate').value = data.joining_date || '';
-                } else {
-                    document.getElementById('editStudentFields').style.display = 'none';
-                    document.getElementById('editFacultyFields').style.display = 'none';
-                }
-                
-                new bootstrap.Modal(document.getElementById('editUserModal')).show();
-            })
-            .catch(err => alert('Error loading user data: ' + err));
+                if (data.success) location.reload();
+                else alert('Error deleting user');
+            });
     }
+}
+
+// Edit user: fetch data and show modal
+function editUser(userId) {
+    fetch('/admin/user/get/' + userId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            document.getElementById('editUserId').value = data.id;
+            document.getElementById('editFullName').value = data.full_name;
+            document.getElementById('editUserForm').action = '/admin/user/edit/' + data.id;
+            // Clear password field (optional)
+            document.getElementById('editNewPassword').value = '';
+            
+            if (data.role === 'student') {
+                document.getElementById('editStudentFields').style.display = 'block';
+                document.getElementById('editFacultyFields').style.display = 'none';
+                document.getElementById('editRollNo').value = data.roll_no || '';
+                document.getElementById('editClassName').value = data.class_name || '';
+                document.getElementById('editCourseId').value = data.course_id || '';
+                document.getElementById('editDob').value = data.dob || '';
+                document.getElementById('editPhone').value = data.phone || '';
+                document.getElementById('editAddress').value = data.address || '';
+                document.getElementById('editParentContact').value = data.parent_contact || '';
+            } else if (data.role === 'faculty') {
+                document.getElementById('editStudentFields').style.display = 'none';
+                document.getElementById('editFacultyFields').style.display = 'block';
+                document.getElementById('editDepartment').value = data.department || '';
+                document.getElementById('editDesignation').value = data.designation || '';
+                document.getElementById('editQualification').value = data.qualification || '';
+                document.getElementById('editJoiningDate').value = data.joining_date || '';
+            } else {
+                document.getElementById('editStudentFields').style.display = 'none';
+                document.getElementById('editFacultyFields').style.display = 'none';
+            }
+            
+            new bootstrap.Modal(document.getElementById('editUserModal')).show();
+        })
+        .catch(err => alert('Error loading user data: ' + err));
+}
 </script>
 {% endblock %}

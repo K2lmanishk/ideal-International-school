@@ -1080,6 +1080,78 @@ def send_fee_reminder(student_id):
 # 13. PROFILE ROUTES
 # ============================================
 
+# ============================================
+# CHANGE USERNAME
+# ============================================
+
+@app.route('/admin/reset-password/<int:user_id>', methods=['POST'])
+@login_required
+def admin_reset_password(user_id):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    new_password = request.form.get('new_password', '').strip()
+    
+    if not new_password or len(new_password) < 6:
+        flash('Password must be at least 6 characters.', 'danger')
+    else:
+        user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
+        flash(f'Password for {user.username} has been reset successfully.', 'success')
+    
+    return redirect(url_for('manage_users'))
+
+@app.route('/change-username', methods=['POST'])
+@login_required
+def change_username():
+    new_username = request.form.get('new_username', '').strip()
+    password = request.form.get('password', '')
+    
+    if not new_username:
+        flash('Username cannot be empty.', 'danger')
+        return redirect(url_for('profile'))
+    
+    if not check_password_hash(current_user.password_hash, password):
+        flash('Current password is incorrect.', 'danger')
+        return redirect(url_for('profile'))
+    
+    if User.query.filter_by(username=new_username).first():
+        flash('Username already taken. Please choose another.', 'danger')
+        return redirect(url_for('profile'))
+    
+    current_user.username = new_username
+    db.session.commit()
+    flash('Username changed successfully! Please log in again with your new username.', 'success')
+    logout_user()
+    return redirect(url_for('login'))
+
+# ============================================
+# CHANGE PASSWORD (improved version, keep existing but ensure it's there)
+# ============================================
+
+@app.route('/change-password', methods=['POST'])
+@login_required
+def change_password():
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    if not check_password_hash(current_user.password_hash, current_password):
+        flash('Current password is incorrect!', 'danger')
+    elif new_password != confirm_password:
+        flash('New passwords do not match!', 'danger')
+    elif len(new_password) < 6:
+        flash('Password must be at least 6 characters!', 'danger')
+    else:
+        current_user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
+        flash('Password changed successfully! Please log in again.', 'success')
+        logout_user()
+        return redirect(url_for('login'))
+    
+    return redirect(url_for('profile'))
+
 @app.route('/profile/update', methods=['POST'])
 @login_required
 def update_profile():
@@ -1132,24 +1204,6 @@ def upload_profile_pic():
             flash(f'Error uploading to Cloudinary: {str(e)}', 'danger')
     else:
         flash('Invalid file type. Allowed: png, jpg, jpeg, gif, webp', 'danger')
-    return redirect(url_for('profile'))
-
-@app.route('/change-password', methods=['POST'])
-@login_required
-def change_password():
-    current_password = request.form.get('current_password')
-    new_password = request.form.get('new_password')
-    confirm_password = request.form.get('confirm_password')
-    if not check_password_hash(current_user.password_hash, current_password):
-        flash('Current password is incorrect!', 'danger')
-    elif new_password != confirm_password:
-        flash('Passwords do not match!', 'danger')
-    elif len(new_password) < 6:
-        flash('Password must be at least 6 characters!', 'danger')
-    else:
-        current_user.password_hash = generate_password_hash(new_password)
-        db.session.commit()
-        flash('Password changed!', 'success')
     return redirect(url_for('profile'))
 
 @app.route('/delete_profile_pic', methods=['POST'])
@@ -1288,6 +1342,152 @@ def edit_user(user_id):
     db.session.commit()
     flash('User updated successfully!', 'success')
     return redirect(url_for('manage_users'))
+
+class AdmissionApplication(db.Model):
+    __tablename__ = 'admission_applications'
+    id = db.Column(db.Integer, primary_key=True)
+    full_name = db.Column(db.String(100), nullable=False)
+    father_name = db.Column(db.String(100))
+    mother_name = db.Column(db.String(100))
+    dob = db.Column(db.Date)
+    gender = db.Column(db.String(10))
+    applying_class = db.Column(db.String(50), nullable=False)
+    phone = db.Column(db.String(15))
+    email = db.Column(db.String(120))
+    address = db.Column(db.Text)
+    previous_school = db.Column(db.String(200))
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    remarks = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    approved_at = db.Column(db.DateTime)
+
+# ============================================
+# ONLINE ADMISSION FORM (Public)
+# ============================================
+
+@app.route('/admission', methods=['GET', 'POST'])
+def admission_form():
+    if request.method == 'POST':
+        try:
+            application = AdmissionApplication(
+                full_name=request.form.get('full_name'),
+                father_name=request.form.get('father_name'),
+                mother_name=request.form.get('mother_name'),
+                dob=datetime.strptime(request.form.get('dob'), '%Y-%m-%d') if request.form.get('dob') else None,
+                gender=request.form.get('gender'),
+                applying_class=request.form.get('applying_class'),
+                phone=request.form.get('phone'),
+                email=request.form.get('email'),
+                address=request.form.get('address'),
+                previous_school=request.form.get('previous_school'),
+                status='pending'
+            )
+            db.session.add(application)
+            db.session.commit()
+            flash('Admission form submitted successfully! We will contact you soon.', 'success')
+            return redirect(url_for('admission_form'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error: {str(e)}', 'danger')
+    return render_template('admission_form.html')
+
+# ============================================
+# ADMIN MANAGE ADMISSIONS
+# ============================================
+
+@app.route('/admin/admissions')
+@login_required
+def admin_admissions():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    
+    status_filter = request.args.get('status', 'pending')
+    applications = AdmissionApplication.query.filter_by(status=status_filter).order_by(AdmissionApplication.created_at.desc()).all()
+    statuses = ['pending', 'approved', 'rejected']
+    
+    return render_template('admin_admissions.html', applications=applications, current_status=status_filter, statuses=statuses)
+
+@app.route('/admin/admission/view/<int:app_id>')
+@login_required
+def view_admission(app_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    application = AdmissionApplication.query.get_or_404(app_id)
+    return render_template('view_admission.html', app=application)
+
+@app.route('/admin/admission/approve/<int:app_id>', methods=['POST'])
+@login_required
+def approve_admission(app_id):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    application = AdmissionApplication.query.get_or_404(app_id)
+    application.status = 'approved'
+    application.approved_at = datetime.utcnow()
+    application.remarks = request.form.get('remarks', '')
+    db.session.commit()
+    
+    # Create student user and student record
+    try:
+        # Generate username: firstname_lastname_roll (or using phone/email)
+        base_username = application.full_name.lower().replace(' ', '_')[:20]
+        username = base_username
+        counter = 1
+        while User.query.filter_by(username=username).first():
+            username = f"{base_username}{counter}"
+            counter += 1
+        
+        password = f"admission{application.id}"  # You can randomize or use DOB
+        hashed = generate_password_hash(password)
+        
+        user = User(
+            username=username,
+            email=application.email or f"{username}@school.com",
+            password_hash=hashed,
+            role='student',
+            full_name=application.full_name
+        )
+        db.session.add(user)
+        db.session.flush()
+        
+        # Generate roll number: e.g., ADM20240001 (year + id)
+        roll_no = f"ADM{datetime.utcnow().year}{application.id:04d}"
+        student = Student(
+            user_id=user.id,
+            roll_no=roll_no,
+            class_name=application.applying_class,
+            dob=application.dob,
+            phone=application.phone,
+            address=application.address,
+            parent_contact=application.father_name or application.mother_name
+        )
+        db.session.add(student)
+        db.session.commit()
+        
+        # Send SMS with credentials if phone exists
+        if application.phone:
+            msg = f"Dear {application.full_name}, your admission is approved. Login ID: {username}, Password: {password} - Ideal School"
+            send_sms(application.phone, msg)
+        
+        flash(f'Admission approved. Student account created: Username={username}, Roll No={roll_no}', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error creating student account: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin_admissions', status='pending'))
+
+@app.route('/admin/admission/reject/<int:app_id>', methods=['POST'])
+@login_required
+def reject_admission(app_id):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    application = AdmissionApplication.query.get_or_404(app_id)
+    application.status = 'rejected'
+    application.remarks = request.form.get('remarks', '')
+    db.session.commit()
+    flash(f'Admission application for {application.full_name} has been rejected.', 'warning')
+    return redirect(url_for('admin_admissions', status='pending'))
 
 # ============================================
 # 15. MAIN

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mt-4">Admission Application Details</h1>
+<div class="card">
+    <div class="card-header bg-info text-white">Application #{{ app.id }}</div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6"><strong>Full Name:</strong> {{ app.full_name }}</div>
+            <div class="col-md-6"><strong>Father:</strong> {{ app.father_name or '-' }}</div>
+            <div class="col-md-6"><strong>Mother:</strong> {{ app.mother_name or '-' }}</div>
+            <div class="col-md-6"><strong>DOB:</strong> {{ app.dob.strftime('%d-%m-%Y') if app.dob else '-' }}</div>
+            <div class="col-md-6"><strong>Gender:</strong> {{ app.gender or '-' }}</div>
+            <div class="col-md-6"><strong>Applying Class:</strong> {{ app.applying_class }}</div>
+            <div class="col-md-6"><strong>Phone:</strong> {{ app.phone or '-' }}</div>
+            <div class="col-md-6"><strong>Email:</strong> {{ app.email or '-' }}</div>
+            <div class="col-12"><strong>Address:</strong> {{ app.address or '-' }}</div>
+            <div class="col-12"><strong>Previous School:</strong> {{ app.previous_school or '-' }}</div>
+            <div class="col-12"><strong>Status:</strong> <span class="badge bg-{{ 'success' if app.status == 'approved' else 'danger' if app.status == 'rejected' else 'warning' }}">{{ app.status|upper }}</span></div>
+            <div class="col-12"><strong>Submitted on:</strong> {{ app.created_at.strftime('%d-%m-%Y %H:%M') }}</div>
+            <div class="col-12"><strong>Remarks:</strong> {{ app.remarks or '-' }}</div>
+        </div>
+    </div>
+    <div class="card-footer"><a href="{{ url_for('admin_admissions') }}" class="btn btn-secondary">Back to List</a></div>
+</div>
+{% endblock %}

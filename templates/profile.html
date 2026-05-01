@@ -16,7 +16,7 @@
 </ol>
 
 <div class="row">
-    <!-- Profile Info Card -->
+    <!-- Profile Info Card (unchanged) -->
     <div class="col-lg-4">
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
@@ -25,15 +25,14 @@
             <div class="card-body text-center">
                 <!-- Profile Picture -->
                 <div class="mb-3">
-                    {% if current_user.profile_pic %}
-                     <img src="{{ current_user.profile_pic }}" 
-                      class="rounded-circle border border-3 border-primary" 
-                      style="width: 120px; height: 120px; object-fit: cover;"
-                     onerror="this.src='https://ui-avatars.com/api/?name={{ current_user.full_name }}&size=120&background=4e73df&color=fff';">
+                    {% if current_user.profile_pic and current_user.profile_pic != 'default.png' %}
+                        <img src="{{ current_user.profile_pic }}" 
+                             class="rounded-circle border border-3 border-primary" 
+                             style="width: 120px; height: 120px; object-fit: cover;">
                     {% else %}
-                  <img src="https://ui-avatars.com/api/?name={{ current_user.full_name }}&size=120&background=4e73df&color=fff" 
-                     class="rounded-circle border border-3 border-primary">
-                {% endif %}
+                        <img src="https://ui-avatars.com/api/?name={{ current_user.full_name }}&size=120&background=4e73df&color=fff" 
+                             class="rounded-circle border border-3 border-primary">
+                    {% endif %}
                 </div>
                 
                 <h5 class="mb-1">{{ current_user.full_name }}</h5>
@@ -155,13 +154,35 @@
             </div>
         </div>
         
+        <!-- Change Username Card -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-person-badge me-2"></i>Change Username
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('change_username') }}" onsubmit="return confirm('Changing your username will log you out. Continue?')">
+                    <div class="mb-3">
+                        <label class="form-label">New Username</label>
+                        <input type="text" class="form-control" name="new_username" required minlength="3" placeholder="Enter new username">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Current Password (for verification)</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-2"></i>Change Username
+                    </button>
+                </form>
+            </div>
+        </div>
+        
         <!-- Change Password Card -->
         <div class="card mb-4">
             <div class="card-header bg-warning text-dark">
                 <i class="bi bi-key me-2"></i>Change Password
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('change_password') }}">
+                <form method="POST" action="{{ url_for('change_password') }}" onsubmit="return confirm('Changing your password will log you out. Continue?')">
                     <div class="mb-3">
                         <label class="form-label">Current Password</label>
                         <input type="password" class="form-control" name="current_password" required>
