@@ -372,6 +372,61 @@ def manage_notices():
     notices = Notice.query.order_by(Notice.created_at.desc()).all()
     return render_template('manage_notices.html', notices=notices)
 
+@app.route('/admin/view-marks')
+@login_required
+def admin_view_marks():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    
+    # All available classes from the student table
+    classes = db.session.query(Student.class_name).distinct().filter(Student.class_name.isnot(None)).all()
+    classes = [c[0] for c in classes if c[0]]
+    # Also include all classes from subject table (for classes with no students yet)
+    subject_classes = db.session.query(Subject.class_name).distinct().filter(Subject.class_name.isnot(None)).all()
+    for sc in subject_classes:
+        if sc[0] not in classes:
+            classes.append(sc[0])
+    classes.sort()
+    
+    # Exam types
+    exam_types = ['Unit Test 1', 'Unit Test 2', 'Half Yearly', 'Pre-Board', 'Final Exam']
+    
+    selected_class = request.args.get('class_name', '')
+    selected_exam = request.args.get('exam_type', 'Final Exam')
+    students_data = []
+    subjects = []
+    
+    if selected_class:
+        # Get all subjects for this class
+        subjects = Subject.query.filter_by(class_name=selected_class).all()
+        # Get all students in this class
+        students = Student.query.filter_by(class_name=selected_class).all()
+        
+        for student in students:
+            student_marks = {}
+            for subject in subjects:
+                mark = Marks.query.filter_by(
+                    student_id=student.id,
+                    subject_id=subject.id,
+                    exam_type=selected_exam
+                ).first()
+                student_marks[subject.id] = {
+                    'obtained': mark.obtained_marks if mark else '-',
+                    'max': mark.max_marks if mark else '-'
+                }
+            students_data.append({
+                'student': student,
+                'marks': student_marks
+            })
+    
+    return render_template('admin_view_marks.html',
+                           classes=classes,
+                           exam_types=exam_types,
+                           selected_class=selected_class,
+                           selected_exam=selected_exam,
+                           subjects=subjects,
+                           students_data=students_data)
+                           
 @app.route('/admin/notice/delete/<int:notice_id>', methods=['POST'])
 @login_required
 def delete_notice(notice_id):
