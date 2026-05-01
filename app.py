@@ -1419,26 +1419,27 @@ def view_admission(app_id):
 @login_required
 def approve_admission(app_id):
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        flash('Access denied.', 'danger')
+        return redirect(url_for('admin_admissions'))
     application = AdmissionApplication.query.get_or_404(app_id)
     application.status = 'approved'
     application.approved_at = datetime.utcnow()
     application.remarks = request.form.get('remarks', '')
     db.session.commit()
-    # Create student account (you may have this logic, keep it)
-    flash('Admission approved.', 'success')
+    flash(f'Admission for {application.full_name} approved.', 'success')
     return redirect(url_for('admin_admissions', status='pending'))
 
 @app.route('/admin/admission/reject/<int:app_id>', methods=['POST'])
 @login_required
 def reject_admission(app_id):
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        flash('Access denied.', 'danger')
+        return redirect(url_for('admin_admissions'))
     application = AdmissionApplication.query.get_or_404(app_id)
     application.status = 'rejected'
     application.remarks = request.form.get('remarks', '')
     db.session.commit()
-    flash('Application rejected.', 'warning')
+    flash(f'Admission for {application.full_name} rejected.', 'warning')
     return redirect(url_for('admin_admissions', status='pending'))
 
 @app.route('/admin/create-missing-tables')
