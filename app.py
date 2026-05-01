@@ -1420,26 +1420,22 @@ def view_admission(app_id):
 def approve_admission(app_id):
     if current_user.role != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
-    
     application = AdmissionApplication.query.get_or_404(app_id)
     application.status = 'approved'
     application.approved_at = datetime.utcnow()
     application.remarks = request.form.get('remarks', '')
     db.session.commit()
     
-    # Create student user and student record
+    # Create student account
     try:
-        # Generate username: firstname_lastname_roll (or using phone/email)
         base_username = application.full_name.lower().replace(' ', '_')[:20]
         username = base_username
         counter = 1
         while User.query.filter_by(username=username).first():
             username = f"{base_username}{counter}"
             counter += 1
-        
-        password = f"admission{application.id}"  # You can randomize or use DOB
+        password = f"admission{application.id}"
         hashed = generate_password_hash(password)
-        
         user = User(
             username=username,
             email=application.email or f"{username}@school.com",
@@ -1449,8 +1445,6 @@ def approve_admission(app_id):
         )
         db.session.add(user)
         db.session.flush()
-        
-        # Generate roll number: e.g., ADM20240001 (year + id)
         roll_no = f"ADM{datetime.utcnow().year}{application.id:04d}"
         student = Student(
             user_id=user.id,
@@ -1464,16 +1458,28 @@ def approve_admission(app_id):
         db.session.add(student)
         db.session.commit()
         
-        # Send SMS with credentials if phone exists
         if application.phone:
-            msg = f"Dear {application.full_name}, your admission is approved. Login ID: {username}, Password: {password} - Ideal School"
-            send_sms(application.phone, msg)
-        
-        flash(f'Admission approved. Student account created: Username={username}, Roll No={roll_no}', 'success')
+            try:
+                msg = f"Dear {application.full_name}, your admission is approved. Login: {username}, Pass: {password} - Ideal School"
+                send_sms(application.phone, msg)
+            except:
+                pass
+        flash(f'Admission approved. Student created: {username}', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Error creating student account: {str(e)}', 'danger')
-    
+        flash(f'Error creating student: {str(e)}', 'danger')
+    return redirect(url_for('admin_admissions', status='pending'))
+
+@app.route('/admin/admission/reject/<int:app_id>', methods=['POST'])
+@login_required
+def reject_admission(app_id):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    application = AdmissionApplication.query.get_or_404(app_id)
+    application.status = 'rejected'
+    application.remarks = request.form.get('remarks', '')
+    db.session.commit()
+    flash('Application rejected.', 'warning')
     return redirect(url_for('admin_admissions', status='pending'))
 
 @app.route('/admin/admission/reject/<int:app_id>', methods=['POST'])
