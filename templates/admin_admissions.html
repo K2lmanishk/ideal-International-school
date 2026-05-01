@@ -25,11 +25,7 @@
         {% if applications %}
         <div class="table-responsive">
             <table class="table table-bordered table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>ID</th><th>Name</th><th>Class</th><th>Phone</th><th>Submitted</th><th>Actions</th>
-                    </tr>
-                </thead>
+                <thead class="table-dark"><tr><th>ID</th><th>Name</th><th>Class</th><th>Phone</th><th>Submitted</th><th>Actions</th></tr></thead>
                 <tbody>
                     {% for app in applications %}
                     <tr id="app-{{ app.id }}">
@@ -44,7 +40,7 @@
                             <button onclick="approve({{ app.id }}, '{{ app.full_name }}', '{{ app.phone or '' }}')" class="btn btn-sm btn-success">Approve</button>
                             <button onclick="reject({{ app.id }}, '{{ app.full_name }}', '{{ app.phone or '' }}')" class="btn btn-sm btn-danger">Reject</button>
                             {% endif %}
-                         </td>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -62,8 +58,11 @@ function formatPhone(phone) {
     if (!phone) return '';
     let p = phone.toString().trim().replace(/[^\d+]/g, '');
     if (!p.startsWith('+')) {
-        if (p.length === 10 && /^[6789]\d{9}$/.test(p)) p = '+91' + p;
-        else if (p.length > 10 && !p.startsWith('91')) p = '+' + p;
+        if (p.length === 10 && /^[6789]\d{9}$/.test(p)) {
+            p = '+91' + p;
+        } else if (p.length > 10 && !p.startsWith('91')) {
+            p = '+' + p;
+        }
     }
     return p;
 }
@@ -85,26 +84,28 @@ function approve(appId, studentName, phone) {
             })
             .then(res => res.json())
             .then(data => {
-                if (data.error) Swal.fire('Error', data.error, 'error');
-                else {
+                if (data.error) {
+                    Swal.fire('Error', data.error, 'error');
+                } else {
                     Swal.fire('Approved!', `${studentName} approved.`, 'success').then(() => {
                         if (phone && phone.trim()) {
                             const formatted = formatPhone(phone);
                             const msg = `Dear ${studentName}, your admission to Ideal International School has been APPROVED. Welcome! Login credentials will follow. - Ideal School`;
-                            const url = `https://wa.me/${formatted}?text=${encodeURIComponent(msg)}`;
-                            Swal.fire({
-                                title: 'Send WhatsApp',
-                                html: `<p>Click to notify:</p>
-                                       <a href="${url}" target="_blank" style="display:inline-block; background:#25D366; color:white; padding:8px 16px; border-radius:30px; text-decoration:none; margin:10px 0;">📱 Open WhatsApp</a>
-                                       <br><button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText('${url}')">📋 Copy Link</button>
-                                       <p class="small text-muted mt-2">If WhatsApp doesn't open, copy the link and paste in browser.</p>`,
-                                icon: 'info',
-                                showConfirmButton: true,
-                                confirmButtonText: 'Done'
-                            }).then(() => location.reload());
-                        } else location.reload();
+                            const whatsappUrl = `https://wa.me/${formatted}?text=${encodeURIComponent(msg)}`;
+                            // Fallback: show an alert with the URL if SweetAlert fails
+                            alert("WhatsApp link: " + whatsappUrl + "\n\nClick OK to copy to clipboard?");
+                            // Attempt to copy
+                            navigator.clipboard.writeText(whatsappUrl).then(() => alert("Link copied! Open WhatsApp and paste.")).catch(() => alert("Could not copy, but link is above."));
+                            location.reload();
+                        } else {
+                            location.reload();
+                        }
                     });
                 }
+            })
+            .catch(err => {
+                console.error(err);
+                Swal.fire('Error', 'Server error', 'error').then(() => location.reload());
             });
         }
     });
@@ -131,23 +132,20 @@ function reject(appId, studentName, phone) {
             })
             .then(res => res.json())
             .then(data => {
-                if (data.error) Swal.fire('Error', data.error, 'error');
-                else {
+                if (data.error) {
+                    Swal.fire('Error', data.error, 'error');
+                } else {
                     Swal.fire('Rejected!', `${studentName} rejected.`, 'warning').then(() => {
                         if (phone && phone.trim()) {
                             const formatted = formatPhone(phone);
                             const msg = `Dear ${studentName}, your admission to Ideal International School has been REJECTED. Reason: ${result.value.remarks}. - Ideal School`;
-                            const url = `https://wa.me/${formatted}?text=${encodeURIComponent(msg)}`;
-                            Swal.fire({
-                                title: 'Send WhatsApp',
-                                html: `<p>Click to notify:</p>
-                                       <a href="${url}" target="_blank" style="display:inline-block; background:#25D366; color:white; padding:8px 16px; border-radius:30px; text-decoration:none; margin:10px 0;">📱 Open WhatsApp</a>
-                                       <br><button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText('${url}')">📋 Copy Link</button>
-                                       <p class="small text-muted mt-2">If WhatsApp doesn't open, copy the link and paste in browser.</p>`,
-                                icon: 'info',
-                                confirmButtonText: 'Done'
-                            }).then(() => location.reload());
-                        } else location.reload();
+                            const whatsappUrl = `https://wa.me/${formatted}?text=${encodeURIComponent(msg)}`;
+                            alert("WhatsApp link: " + whatsappUrl + "\n\nClick OK to copy.");
+                            navigator.clipboard.writeText(whatsappUrl).catch(() => {});
+                            location.reload();
+                        } else {
+                            location.reload();
+                        }
                     });
                 }
             });
