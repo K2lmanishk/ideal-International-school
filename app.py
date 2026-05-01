@@ -1425,10 +1425,45 @@ def approve_admission(app_id):
     application.approved_at = datetime.utcnow()
     application.remarks = request.form.get('remarks', '')
     db.session.commit()
-    # Optional: create student account here
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({'success': True})
-    return redirect(url_for('admin_admissions', status='pending'))
+
+    # (Optional) Create student account automatically
+    try:
+        # Generate username and roll number
+        base_username = application.full_name.lower().replace(' ', '_')[:20]
+        username = base_username
+        counter = 1
+        while User.query.filter_by(username=username).first():
+            username = f"{base_username}{counter}"
+            counter += 1
+        password = f"admission{application.id}"
+        hashed = generate_password_hash(password)
+        user = User(
+            username=username,
+            email=application.email or f"{username}@school.com",
+            password_hash=hashed,
+            role='student',
+            full_name=application.full_name
+        )
+        db.session.add(user)
+        db.session.flush()
+        roll_no = f"ADM{datetime.utcnow().year}{application.id:04d}"
+        student = Student(
+            user_id=user.id,
+            roll_no=roll_no,
+            class_name=application.applying_class,
+            dob=application.dob,
+            phone=application.phone,
+            address=application.address,
+            parent_contact=application.father_name or application.mother_name
+        )
+        db.session.add(student)
+        db.session.commit()
+        # You could also send SMS/WhatsApp here if needed
+    except Exception as e:
+        # Log error but don't fail the approval
+        print(f"Error creating student: {e}")
+
+    return jsonify({'success': True})
 
 @app.route('/admin/admission/reject/<int:app_id>', methods=['POST'])
 @login_required
@@ -1439,10 +1474,7 @@ def reject_admission(app_id):
     application.status = 'rejected'
     application.remarks = request.form.get('remarks', '')
     db.session.commit()
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({'success': True})
-    return redirect(url_for('admin_admissions', status='pending'))
-
+    return jsonify({'success': True})
 @app.route('/admin/create-missing-tables')
 @login_required
 def create_missing_tables():
