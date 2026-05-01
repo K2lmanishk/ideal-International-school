@@ -1419,27 +1419,28 @@ def view_admission(app_id):
 @login_required
 def approve_admission(app_id):
     if current_user.role != 'admin':
-        flash('Access denied.', 'danger')
-        return redirect(url_for('admin_admissions'))
+        return jsonify({'error': 'Unauthorized'}), 403
     application = AdmissionApplication.query.get_or_404(app_id)
     application.status = 'approved'
     application.approved_at = datetime.utcnow()
     application.remarks = request.form.get('remarks', '')
     db.session.commit()
-    flash(f'Admission for {application.full_name} approved.', 'success')
+    # Optional: create student account here
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True})
     return redirect(url_for('admin_admissions', status='pending'))
 
 @app.route('/admin/admission/reject/<int:app_id>', methods=['POST'])
 @login_required
 def reject_admission(app_id):
     if current_user.role != 'admin':
-        flash('Access denied.', 'danger')
-        return redirect(url_for('admin_admissions'))
+        return jsonify({'error': 'Unauthorized'}), 403
     application = AdmissionApplication.query.get_or_404(app_id)
     application.status = 'rejected'
     application.remarks = request.form.get('remarks', '')
     db.session.commit()
-    flash(f'Admission for {application.full_name} rejected.', 'warning')
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True})
     return redirect(url_for('admin_admissions', status='pending'))
 
 @app.route('/admin/create-missing-tables')

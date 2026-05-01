@@ -21,7 +21,7 @@
                 </thead>
                 <tbody>
                     {% for app in applications %}
-                    <tr>
+                    <tr id="app-{{ app.id }}">
                         <td>{{ app.id }}</td>
                         <td>{{ app.full_name }}</td>
                         <td>{{ app.applying_class }}</td>
@@ -30,52 +30,11 @@
                         <td>
                             <a href="{{ url_for('view_admission', app_id=app.id) }}" class="btn btn-sm btn-info">View</a>
                             {% if current_status == 'pending' %}
-                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#approveModal{{ app.id }}">Approve</button>
-                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ app.id }}">Reject</button>
+                            <button onclick="approve({{ app.id }})" class="btn btn-sm btn-success">Approve</button>
+                            <button onclick="reject({{ app.id }})" class="btn btn-sm btn-danger">Reject</button>
                             {% endif %}
-                        </td>
+                         </td>
                     </tr>
-                    <!-- Approve Modal -->
-<div class="modal fade" id="approveModal{{ app.id }}" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5>Approve Admission</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="{{ url_for('approve_admission', app_id=app.id) }}">
-                <div class="modal-body">
-                    <textarea name="remarks" class="form-control" placeholder="Optional remarks"></textarea>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">Approve</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Reject Modal -->
-<div class="modal fade" id="rejectModal{{ app.id }}" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5>Reject Admission</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="{{ url_for('reject_admission', app_id=app.id) }}">
-                <div class="modal-body">
-                    <textarea name="remarks" class="form-control" placeholder="Reason for rejection" required></textarea>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Reject</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
                     {% endfor %}
                 </tbody>
             </table>
@@ -85,4 +44,41 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+function approve(appId) {
+    var remarks = prompt("Optional remarks for approval:", "");
+    if (remarks === null) return;
+    fetch('/admin/admission/approve/' + appId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'remarks=' + encodeURIComponent(remarks || '')
+    })
+    .then(response => response.redirected ? window.location.href = response.url : response.json())
+    .then(data => {
+        if (data && data.error) alert(data.error);
+        else location.reload();
+    })
+    .catch(err => location.reload());
+}
+
+function reject(appId) {
+    var reason = prompt("Reason for rejection:", "");
+    if (reason === null || reason.trim() === "") {
+        alert("Please provide a reason.");
+        return;
+    }
+    fetch('/admin/admission/reject/' + appId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'remarks=' + encodeURIComponent(reason)
+    })
+    .then(response => response.redirected ? window.location.href = response.url : response.json())
+    .then(data => {
+        if (data && data.error) alert(data.error);
+        else location.reload();
+    })
+    .catch(err => location.reload());
+}
+</script>
 {% endblock %}
