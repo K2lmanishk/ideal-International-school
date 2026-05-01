@@ -27,11 +27,7 @@
             <table class="table table-bordered table-hover">
                 <thead class="table-dark">
                     <tr>
-                        <th>Name</th>
-                        <th>Class</th>
-                        <th>Phone</th>
-                        <th>Submitted</th>
-                        <th>Actions</th>
+                        <th>Name</th><th>Class</th><th>Phone</th><th>Submitted</th><th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -42,16 +38,10 @@
                         <td>{{ app.phone or 'No phone' }}</td>
                         <td>{{ app.created_at.strftime('%d-%m-%Y') }}</td>
                         <td>
-                            <a href="{{ url_for('view_admission', app_id=app.id) }}" class="btn btn-sm btn-info">
-                                <i class="bi bi-eye"></i> View
-                            </a>
+                            <a href="{{ url_for('view_admission', app_id=app.id) }}" class="btn btn-sm btn-info">View</a>
                             {% if current_status == 'pending' %}
-                            <button onclick="approve({{ app.id }}, '{{ app.full_name }}', '{{ app.phone or '' }}')" class="btn btn-sm btn-success">
-                                <i class="bi bi-check-lg"></i> Approve
-                            </button>
-                            <button onclick="reject({{ app.id }}, '{{ app.full_name }}', '{{ app.phone or '' }}')" class="btn btn-sm btn-danger">
-                                <i class="bi bi-x-lg"></i> Reject
-                            </button>
+                            <button onclick="approve({{ app.id }}, '{{ app.full_name }}', '{{ app.phone or '' }}')" class="btn btn-sm btn-success">Approve</button>
+                            <button onclick="reject({{ app.id }}, '{{ app.full_name }}', '{{ app.phone or '' }}')" class="btn btn-sm btn-danger">Reject</button>
                             {% endif %}
                         </td>
                     </tr>
@@ -65,9 +55,7 @@
     </div>
 </div>
 
-<!-- SweetAlert2 CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
 function formatPhone(phone) {
     if (!phone) return '';
@@ -80,6 +68,43 @@ function formatPhone(phone) {
         }
     }
     return p;
+}
+
+function openWhatsApp(phone, studentName, messageTemplate, isApproval) {
+    if (!phone || phone.trim() === '') {
+        Swal.fire('No Phone', 'No phone number available to send WhatsApp.', 'info');
+        return Promise.resolve();
+    }
+    const formatted = formatPhone(phone);
+    const msg = messageTemplate.replace('{name}', studentName);
+    const url = `https://wa.me/${formatted}?text=${encodeURIComponent(msg)}`;
+    // Show confirmation dialog before opening
+    return Swal.fire({
+        title: 'Send WhatsApp Notification?',
+        text: `Do you want to notify ${studentName} via WhatsApp?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, open WhatsApp',
+        cancelButtonText: 'No, skip'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Attempt to open WhatsApp in a new tab (user gesture preserves popup permission)
+            const win = window.open(url, '_blank');
+            if (!win || win.closed || typeof win.closed === 'undefined') {
+                // Popup blocked, show fallback
+                Swal.fire({
+                    title: 'Popup Blocked',
+                    html: `Please allow popups or <a href="${url}" target="_blank">click here</a> to open WhatsApp.`,
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                Swal.fire('Opened!', 'WhatsApp window opened.', 'success').then(() => location.reload());
+            }
+        } else {
+            location.reload();
+        }
+    });
 }
 
 function approve(appId, studentName, phone) {
@@ -103,34 +128,15 @@ function approve(appId, studentName, phone) {
                 if (data.error) {
                     Swal.fire('Error', data.error, 'error');
                 } else {
-                    Swal.fire({
-                        title: 'Approved!',
-                        text: `${studentName} has been approved.`,
-                        icon: 'success',
-                        confirmButtonText: 'OK'
-                    }).then(() => {
-                        if (phone && phone.trim() !== '') {
-                            const formattedPhone = formatPhone(phone);
-                            const message = `Dear ${studentName}, your admission to Ideal International School has been APPROVED. Welcome! Login credentials will be sent shortly. - Ideal School`;
-                            const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
-                            Swal.fire({
-                                title: 'Send WhatsApp Notification',
-                                html: `<p>Click the link below to notify ${studentName}:</p>
-                                       <a href="${whatsappUrl}" target="_blank" style="display:inline-block; background:#25D366; color:white; padding:8px 16px; border-radius:30px; text-decoration:none; margin:10px 0;">📱 Open WhatsApp</a>
-                                       <br><button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText('${whatsappUrl}')">📋 Copy Link</button>
-                                       <p class="small text-muted mt-2">If WhatsApp doesn't open, copy the link and paste in browser.</p>`,
-                                icon: 'info',
-                                confirmButtonText: 'Done'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            location.reload();
-                        }
+                    Swal.fire('Approved!', `${studentName} has been approved.`, 'success').then(() => {
+                        const msgTemplate = `Dear {name}, your admission to Ideal International School has been APPROVED. Welcome! Login credentials will follow. - Ideal School`;
+                        openWhatsApp(phone, studentName, msgTemplate, true);
                     });
                 }
             })
-            .catch(err => location.reload());
+            .catch(err => {
+                Swal.fire('Error', 'Server error', 'error').then(() => location.reload());
+            });
         }
     });
 }
@@ -164,34 +170,15 @@ function reject(appId, studentName, phone) {
                 if (data.error) {
                     Swal.fire('Error', data.error, 'error');
                 } else {
-                    Swal.fire({
-                        title: 'Rejected!',
-                        text: `${studentName} has been rejected.`,
-                        icon: 'warning',
-                        confirmButtonText: 'OK'
-                    }).then(() => {
-                        if (phone && phone.trim() !== '') {
-                            const formattedPhone = formatPhone(phone);
-                            const message = `Dear ${studentName}, we regret to inform you that your admission application to Ideal International School has been REJECTED. Reason: ${reason}. - Ideal School`;
-                            const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
-                            Swal.fire({
-                                title: 'Send WhatsApp Notification',
-                                html: `<p>Click the link below to notify ${studentName}:</p>
-                                       <a href="${whatsappUrl}" target="_blank" style="display:inline-block; background:#25D366; color:white; padding:8px 16px; border-radius:30px; text-decoration:none; margin:10px 0;">📱 Open WhatsApp</a>
-                                       <br><button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText('${whatsappUrl}')">📋 Copy Link</button>
-                                       <p class="small text-muted mt-2">If WhatsApp doesn't open, copy the link and paste in browser.</p>`,
-                                icon: 'info',
-                                confirmButtonText: 'Done'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            location.reload();
-                        }
+                    Swal.fire('Rejected!', `${studentName} has been rejected.`, 'warning').then(() => {
+                        const msgTemplate = `Dear {name}, your admission to Ideal International School has been REJECTED. Reason: ${reason}. - Ideal School`;
+                        openWhatsApp(phone, studentName, msgTemplate, false);
                     });
                 }
             })
-            .catch(err => location.reload());
+            .catch(err => {
+                Swal.fire('Error', 'Server error', 'error').then(() => location.reload());
+            });
         }
     });
 }
