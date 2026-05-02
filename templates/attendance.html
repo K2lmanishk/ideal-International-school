@@ -107,7 +107,7 @@ function loadStudents() {
                     }
                     const subject = document.getElementById('subjectSelect').selectedOptions[0]?.text || 'subject';
                     const date = document.getElementById('attendanceDate').value;
-                    const msg = `Dear Parent, your child ${name} (Roll: ${roll}) was marked absent on ${date} for ${subject}. - Ideal School`;
+                    const msg = `Dear Parent, your child ${name} (Roll: ${roll}) was marked absent on ${date} for ${subject}. - Children's Rise High School`;
                     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
                 });
             });

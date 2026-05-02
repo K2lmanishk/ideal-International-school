@@ -1,5 +1,5 @@
 # ============================================
-# SCHOOL MANAGEMENT SYSTEM - IDEAL INTERNATIONAL SCHOOL
+# SCHOOL MANAGEMENT SYSTEM - CHILDREN'S RISE HIGH SCHOOL
 # All Features Working + Mobile Responsive
 # ============================================
 
@@ -40,11 +40,11 @@ class Config:
     TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
 
 # School Configuration
-SCHOOL_NAME = "Ideal International School"
+SCHOOL_NAME = "Children's Rise High School"
 SCHOOL_ADDRESS = "Tarwara, Bihar 841506"
-SCHOOL_CONTACT = "+91-9973481187"
-SCHOOL_EMAIL = "info@iistsiwan.com"
-ACADEMIC_YEAR = "2024-2026"
+SCHOOL_CONTACT = "+91-7004514869"
+SCHOOL_EMAIL = "info@crhs.com"
+ACADEMIC_YEAR = "2025-2026"
 
 # App Initialization
 app = Flask(__name__)
@@ -858,7 +858,7 @@ def student_id_card():
 @login_required
 def generate_qr(roll_no):
     # स्कूल की मुख्य वेबसाइट (अपना लाइव URL डालें)
-    school_website = "https://www.iistsiwan.com/"  # या अपना डोमेन
+    school_website = "https://crhs.co.in/index.php"  # या अपना डोमेन
     qr = qrcode.QRCode(version=1, box_size=10, border=2)
     qr.add_data(school_website)
     qr.make(fit=True)
@@ -1194,7 +1194,7 @@ def upload_profile_pic():
         return redirect(url_for('profile'))
     if file and allowed_file(file.filename):
         try:
-            upload_result = cloudinary.uploader.upload(file, folder="ideal_school_profiles",
+            upload_result = cloudinary.uploader.upload(file, folder="crhs_profiles",
                                                        public_id=f"user_{current_user.id}", overwrite=True, resource_type="image")
             current_user.profile_pic = upload_result['secure_url']
             db.session.commit()
@@ -1247,7 +1247,7 @@ def setup_db():
         db.create_all()
         from werkzeug.security import generate_password_hash
         if not User.query.filter_by(username='admin').first():
-            admin = User(username='admin', email='admin@school.edu', password_hash=generate_password_hash('admin123'), role='admin', full_name='Administrator')
+            admin = User(username='admin', email='admin@crhs.com', password_hash=generate_password_hash('admin123'), role='admin', full_name='Administrator')
             db.session.add(admin)
             db.session.commit()
         if Course.query.count() == 0:

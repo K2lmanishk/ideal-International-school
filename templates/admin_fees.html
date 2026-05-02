@@ -113,8 +113,7 @@
                         <td>
                             <div class="btn-group" role="group">
                                 {% if item.fee.status != 'Paid' and item.student.phone %}
-                                <a href="{{ whatsapp_link(item.student.phone, 'Dear ' + item.student.user.full_name + ', your fee of ₹' + (item.fee.amount - item.fee.paid_amount)|string + ' is pending. Due date: ' + item.fee.due_date.strftime('%Y-%m-%d') + '. Please pay at the earliest. - Ideal School') }}"
-                                 target="_blank"
+<a href="{{ whatsapp_link(item.student.phone, 'Dear ' + item.student.user.full_name + ', your fee of ₹' + (item.fee.amount - item.fee.paid_amount)|string + ' is pending. Due date: ' + item.fee.due_date.strftime('%Y-%m-%d') + '. Please pay at the earliest. - Children\'s Rise High School') }}"                                 target="_blank"
                                  class="btn btn-sm btn-success"
                                  title="Send WhatsApp Reminder">
                                  <i class="bi bi-whatsapp"></i>
