@@ -1515,6 +1515,16 @@ def create_missing_tables():
     except Exception as e:
         return f"❌ Error: {str(e)}"
     
+@app.route('/admin/admission/delete/<int:app_id>', methods=['POST'])
+@login_required
+def delete_admission(app_id):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    application = AdmissionApplication.query.get_or_404(app_id)
+    db.session.delete(application)
+    db.session.commit()
+    return jsonify({'success': True})
+
 @app.route('/admin/create-admission-table')
 @login_required
 def create_admission_table():

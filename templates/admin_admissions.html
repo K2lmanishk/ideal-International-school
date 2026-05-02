@@ -27,7 +27,11 @@
             <table class="table table-bordered table-hover">
                 <thead class="table-dark">
                     <tr>
-                        <th>Name</th><th>Class</th><th>Phone</th><th>Submitted</th><th>Actions</th>
+                        <th>Name</th>
+                        <th>Class</th>
+                        <th>Phone</th>
+                        <th>Submitted</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -38,11 +42,22 @@
                         <td>{{ app.phone or 'No phone' }}</td>
                         <td>{{ app.created_at.strftime('%d-%m-%Y') }}</td>
                         <td>
-                            <a href="{{ url_for('view_admission', app_id=app.id) }}" class="btn btn-sm btn-info">View</a>
-                            {% if current_status == 'pending' %}
-                            <button onclick="approve({{ app.id }}, '{{ app.full_name }}', '{{ app.phone or '' }}')" class="btn btn-sm btn-success">Approve</button>
-                            <button onclick="reject({{ app.id }}, '{{ app.full_name }}', '{{ app.phone or '' }}')" class="btn btn-sm btn-danger">Reject</button>
-                            {% endif %}
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('view_admission', app_id=app.id) }}" class="btn btn-sm btn-info" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if current_status == 'pending' %}
+                                <button onclick="approve({{ app.id }}, '{{ app.full_name }}', '{{ app.phone or '' }}')" class="btn btn-sm btn-success" title="Approve">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button onclick="reject({{ app.id }}, '{{ app.full_name }}', '{{ app.phone or '' }}')" class="btn btn-sm btn-danger" title="Reject">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                                {% endif %}
+                                <button onclick="deleteApplication({{ app.id }}, '{{ app.full_name }}')" class="btn btn-sm btn-dark" title="Delete Application">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -61,50 +76,30 @@ function formatPhone(phone) {
     if (!phone) return '';
     let p = phone.toString().trim().replace(/[^\d+]/g, '');
     if (!p.startsWith('+')) {
-        if (p.length === 10 && /^[6789]\d{9}$/.test(p)) {
-            p = '+91' + p;
-        } else if (p.length > 10 && !p.startsWith('91')) {
-            p = '+' + p;
-        }
+        if (p.length === 10 && /^[6789]\d{9}$/.test(p)) p = '+91' + p;
+        else if (p.length > 10 && !p.startsWith('91')) p = '+' + p;
     }
     return p;
 }
 
-function openWhatsApp(phone, studentName, messageTemplate, isApproval) {
+function showWhatsAppLink(phone, studentName, message) {
     if (!phone || phone.trim() === '') {
-        Swal.fire('No Phone', 'No phone number available to send WhatsApp.', 'info');
-        return Promise.resolve();
+        Swal.fire('No Phone', `No phone number for ${studentName}.`, 'info').then(() => location.reload());
+        return;
     }
     const formatted = formatPhone(phone);
-    const msg = messageTemplate.replace('{name}', studentName);
-    const url = `https://wa.me/${formatted}?text=${encodeURIComponent(msg)}`;
-    // Show confirmation dialog before opening
-    return Swal.fire({
-        title: 'Send WhatsApp Notification?',
-        text: `Do you want to notify ${studentName} via WhatsApp?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, open WhatsApp',
-        cancelButtonText: 'No, skip'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Attempt to open WhatsApp in a new tab (user gesture preserves popup permission)
-            const win = window.open(url, '_blank');
-            if (!win || win.closed || typeof win.closed === 'undefined') {
-                // Popup blocked, show fallback
-                Swal.fire({
-                    title: 'Popup Blocked',
-                    html: `Please allow popups or <a href="${url}" target="_blank">click here</a> to open WhatsApp.`,
-                    icon: 'warning',
-                    confirmButtonText: 'OK'
-                });
-            } else {
-                Swal.fire('Opened!', 'WhatsApp window opened.', 'success').then(() => location.reload());
-            }
-        } else {
-            location.reload();
-        }
-    });
+    const url = `https://wa.me/${formatted}?text=${encodeURIComponent(message)}`;
+    Swal.fire({
+        title: 'Send WhatsApp Notification',
+        html: `<p>Click the button below to notify ${studentName}:</p>
+               <a href="${url}" target="_blank" class="btn btn-success" style="background:#25D366; border:none; padding:10px 20px; font-size:1rem;">📱 Open WhatsApp</a>
+               <br><br>
+               <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('${url}')">📋 Copy Link</button>
+               <p class="small text-muted mt-3">If WhatsApp doesn't open, copy the link and paste in your browser.</p>`,
+        icon: 'info',
+        confirmButtonText: 'Done',
+        allowOutsideClick: false
+    }).then(() => location.reload());
 }
 
 function approve(appId, studentName, phone) {
@@ -125,18 +120,15 @@ function approve(appId, studentName, phone) {
             })
             .then(response => response.json())
             .then(data => {
-                if (data.error) {
-                    Swal.fire('Error', data.error, 'error');
-                } else {
-                    Swal.fire('Approved!', `${studentName} has been approved.`, 'success').then(() => {
-                        const msgTemplate = `Dear {name}, your admission to Ideal International School has been APPROVED. Welcome! Login credentials will follow. - Ideal School`;
-                        openWhatsApp(phone, studentName, msgTemplate, true);
+                if (data.error) Swal.fire('Error', data.error, 'error');
+                else {
+                    Swal.fire('Approved!', `${studentName} approved.`, 'success').then(() => {
+                        const message = `Dear ${studentName}, your admission to Ideal International School has been APPROVED. Welcome! Login credentials will follow. - Ideal School`;
+                        showWhatsAppLink(phone, studentName, message);
                     });
                 }
             })
-            .catch(err => {
-                Swal.fire('Error', 'Server error', 'error').then(() => location.reload());
-            });
+            .catch(err => Swal.fire('Server Error', 'Could not complete approval.', 'error').then(() => location.reload()));
         }
     });
 }
@@ -151,10 +143,7 @@ function reject(appId, studentName, phone) {
         cancelButtonText: 'Cancel',
         preConfirm: () => {
             const reason = document.getElementById('remarks').value.trim();
-            if (!reason) {
-                Swal.showValidationMessage('Please provide a reason for rejection');
-                return false;
-            }
+            if (!reason) { Swal.showValidationMessage('Please provide a reason'); return false; }
             return { remarks: reason };
         }
     }).then((result) => {
@@ -167,18 +156,41 @@ function reject(appId, studentName, phone) {
             })
             .then(response => response.json())
             .then(data => {
-                if (data.error) {
-                    Swal.fire('Error', data.error, 'error');
-                } else {
-                    Swal.fire('Rejected!', `${studentName} has been rejected.`, 'warning').then(() => {
-                        const msgTemplate = `Dear {name}, your admission to Ideal International School has been REJECTED. Reason: ${reason}. - Ideal School`;
-                        openWhatsApp(phone, studentName, msgTemplate, false);
+                if (data.error) Swal.fire('Error', data.error, 'error');
+                else {
+                    Swal.fire('Rejected!', `${studentName} rejected.`, 'warning').then(() => {
+                        const message = `Dear ${studentName}, your admission to Ideal International School has been REJECTED. Reason: ${reason}. - Ideal School`;
+                        showWhatsAppLink(phone, studentName, message);
                     });
                 }
             })
-            .catch(err => {
-                Swal.fire('Error', 'Server error', 'error').then(() => location.reload());
-            });
+            .catch(err => Swal.fire('Server Error', 'Could not complete rejection.', 'error').then(() => location.reload()));
+        }
+    });
+}
+
+function deleteApplication(appId, studentName) {
+    Swal.fire({
+        title: 'Delete Application?',
+        text: `Are you sure you want to delete ${studentName}'s admission application? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/admin/admission/delete/' + appId, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Deleted!', 'Application has been removed.', 'success').then(() => location.reload());
+                    } else {
+                        Swal.fire('Error', data.error || 'Could not delete application.', 'error');
+                    }
+                })
+                .catch(err => Swal.fire('Error', 'Server error while deleting.', 'error'));
         }
     });
 }
