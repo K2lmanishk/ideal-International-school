@@ -13,37 +13,15 @@
             <div class="card-header"><i class="bi bi-person-check"></i> New Assignment</div>
             <div class="card-body">
                 <form method="POST">
-                    <div class="mb-3">
-                        <label class="form-label">Faculty</label>
-                        <select class="form-select" name="faculty_id" required>
-                            <option value="">Select Faculty</option>
-                            {% for faculty in faculties %}
-                            <option value="{{ faculty.id }}">{{ faculty.user.full_name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Subject</label>
-                        <select class="form-select" name="subject_id" required>
-                            <option value="">Select Subject</option>
-                            {% for subject in subjects %}
-                            <option value="{{ subject.id }}">{{ subject.name }} ({{ subject.code }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Academic Year</label>
-                        <select class="form-select" name="academic_year" required>
-                            <option value="2024-2025">2024-2025</option>
-                            <option value="2025-2026">2025-2026</option>
-                        </select>
-                    </div>
+                    <div class="mb-3"><label>Faculty</label><select class="form-select" name="faculty_id" required>...</select></div>
+                    <div class="mb-3"><label>Subject</label><select class="form-select" name="subject_id" required>...</select></div>
+                    <div class="mb-3"><label>Academic Year</label><select class="form-select" name="academic_year" required>...</select></div>
                     <button type="submit" class="btn btn-primary">Assign Faculty</button>
                 </form>
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-7">
         <div class="card mb-4">
             <div class="card-header"><i class="bi bi-list-check"></i> Current Assignments</div>
@@ -55,14 +33,20 @@
                                 <th>Faculty</th>
                                 <th>Subject</th>
                                 <th>Academic Year</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for assignment in assignments %}
                             <tr>
                                 <td>{{ assignment.faculty.user.full_name }}</td>
-                                <td>{{ assignment.subject.name }}</td>
+                                <td>{{ assignment.subject.name }} ({{ assignment.subject.code }})</td>
                                 <td>{{ assignment.academic_year }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning" onclick="editAssignment({{ assignment.id }})">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </button>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -72,4 +56,53 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Assignment Modal -->
+<div class="modal fade" id="editAssignmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Faculty Assignment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editAssignmentForm">
+                <div class="modal-body">
+                    <input type="hidden" name="assignment_id" id="editAssignmentId">
+                    <div class="mb-3"><label>Faculty</label><select class="form-select" name="faculty_id" id="editFacultyId" required>...</select></div>
+                    <div class="mb-3"><label>Subject</label><select class="form-select" name="subject_id" id="editSubjectId" required>...</select></div>
+                    <div class="mb-3"><label>Academic Year</label><select class="form-select" name="academic_year" id="editAcademicYear" required>...</select></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function editAssignment(assignmentId) {
+    fetch('/admin/faculty-assignment/get/' + assignmentId)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) { alert(data.error); return; }
+            document.getElementById('editAssignmentId').value = data.id;
+            document.getElementById('editFacultyId').value = data.faculty_id;
+            document.getElementById('editSubjectId').value = data.subject_id;
+            document.getElementById('editAcademicYear').value = data.academic_year;
+            new bootstrap.Modal(document.getElementById('editAssignmentModal')).show();
+        })
+        .catch(err => alert('Error loading assignment: ' + err));
+}
+document.getElementById('editAssignmentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const assignmentId = document.getElementById('editAssignmentId').value;
+    fetch('/admin/faculty-assignment/edit/' + assignmentId, { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => { if (data.success) location.reload(); else alert('Error: ' + (data.message || 'Update failed')); })
+        .catch(err => alert('Request failed: ' + err));
+});
+</script>
 {% endblock %}

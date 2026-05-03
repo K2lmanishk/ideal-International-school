@@ -142,6 +142,78 @@ def logout():
 # 6. ADMIN ROUTES (Keep existing ones)
 # ============================================
 
+# ============================================
+# EDIT SUBJECT (Admin)
+# ============================================
+
+@app.route('/admin/subject/get/<int:subject_id>')
+@login_required
+def get_subject_json(subject_id):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    subject = Subject.query.get_or_404(subject_id)
+    return jsonify({
+        'id': subject.id,
+        'name': subject.name,
+        'code': subject.code,
+        'class_name': subject.class_name,
+        'course_id': subject.course_id,
+        'credits': subject.credits,
+        'type': subject.type
+    })
+
+@app.route('/admin/subject/edit/<int:subject_id>', methods=['POST'])
+@login_required
+def edit_subject(subject_id):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    subject = Subject.query.get_or_404(subject_id)
+    data = request.form
+
+    new_code = data.get('code')
+    if new_code and new_code != subject.code:
+        if Subject.query.filter_by(code=new_code).first():
+            return jsonify({'success': False, 'message': 'Subject code already exists'}), 400
+        subject.code = new_code
+
+    subject.name = data.get('name')
+    subject.class_name = data.get('class_name')
+    subject.course_id = data.get('course_id') or None
+    subject.credits = data.get('credits')
+    subject.type = data.get('type')
+    db.session.commit()
+    return jsonify({'success': True})
+
+# ============================================
+# EDIT FACULTY ASSIGNMENT (Admin)
+# ============================================
+
+@app.route('/admin/faculty-assignment/get/<int:assignment_id>')
+@login_required
+def get_assignment_json(assignment_id):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    assignment = FacultyAssignment.query.get_or_404(assignment_id)
+    return jsonify({
+        'id': assignment.id,
+        'faculty_id': assignment.faculty_id,
+        'subject_id': assignment.subject_id,
+        'academic_year': assignment.academic_year
+    })
+
+@app.route('/admin/faculty-assignment/edit/<int:assignment_id>', methods=['POST'])
+@login_required
+def edit_faculty_assignment(assignment_id):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    assignment = FacultyAssignment.query.get_or_404(assignment_id)
+    data = request.form
+    assignment.faculty_id = data.get('faculty_id')
+    assignment.subject_id = data.get('subject_id')
+    assignment.academic_year = data.get('academic_year')
+    db.session.commit()
+    return jsonify({'success': True})
+
 @app.route('/admin/dashboard')
 @login_required
 def admin_dashboard():
