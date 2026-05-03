@@ -13,12 +13,46 @@
             <div class="card-header"><i class="bi bi-journal-plus"></i> Add New Subject</div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('add_subject') }}">
-                    <div class="mb-3"><label>Stream (Optional)</label><select class="form-select" name="course_id">...</select><small class="text-muted">For Class 11-12</small></div>
-                    <div class="mb-3"><label>Class <span class="text-danger">*</span></label><select class="form-select" name="class_name" required>...</select></div>
-                    <div class="mb-3"><label>Subject Name <span class="text-danger">*</span></label><input type="text" class="form-control" name="name" required></div>
-                    <div class="mb-3"><label>Subject Code <span class="text-danger">*</span></label><input type="text" class="form-control" name="code" required></div>
-                    <div class="mb-3"><label>Credits <span class="text-danger">*</span></label><input type="number" class="form-control" name="credits" min="1" max="10" value="4" required></div>
-                    <div class="mb-3"><label>Type <span class="text-danger">*</span></label><select class="form-select" name="type" required>...</select></div>
+                    <div class="mb-3">
+                        <label>Stream (Optional)</label>
+                        <select class="form-select" name="course_id">
+                            <option value="">Select Stream (Science/Commerce/Arts)</option>
+                            {% for course in courses %}
+                            <option value="{{ course.id }}">{{ course.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">For Class 11-12</small>
+                    </div>
+                    <div class="mb-3">
+                        <label>Class <span class="text-danger">*</span></label>
+                        <select class="form-select" name="class_name" required>
+                            <option value="">Select Class</option>
+                            {% for class_item in classes %}
+                            <option value="{{ class_item }}">{{ class_item }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Subject Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Subject Code <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="code" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Credits <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" name="credits" min="1" max="10" value="4" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Type <span class="text-danger">*</span></label>
+                        <select class="form-select" name="type" required>
+                            <option value="Theory">Theory</option>
+                            <option value="Practical">Practical</option>
+                            <option value="Language">Language</option>
+                            <option value="Elective">Elective</option>
+                        </select>
+                    </div>
                     <button type="submit" class="btn btn-primary w-100">Save Subject</button>
                 </form>
             </div>
@@ -58,7 +92,7 @@
                                     <button class="btn btn-sm btn-warning" onclick="editSubject({{ subject.id }})">
                                         <i class="bi bi-pencil"></i> Edit
                                     </button>
-                                </td>
+                                </small>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -83,12 +117,45 @@
             <form id="editSubjectForm">
                 <div class="modal-body">
                     <input type="hidden" name="subject_id" id="editSubjectId">
-                    <div class="mb-3"><label>Subject Name</label><input type="text" class="form-control" name="name" id="editSubjectName" required></div>
-                    <div class="mb-3"><label>Subject Code</label><input type="text" class="form-control" name="code" id="editSubjectCode" required></div>
-                    <div class="mb-3"><label>Class</label><select class="form-select" name="class_name" id="editSubjectClass" required>...</select></div>
-                    <div class="mb-3"><label>Stream (Optional)</label><select class="form-select" name="course_id" id="editSubjectCourse">...</select></div>
-                    <div class="mb-3"><label>Credits</label><input type="number" class="form-control" name="credits" id="editSubjectCredits" required></div>
-                    <div class="mb-3"><label>Type</label><select class="form-select" name="type" id="editSubjectType" required>...</select></div>
+                    <div class="mb-3">
+                        <label>Subject Name</label>
+                        <input type="text" class="form-control" name="name" id="editSubjectName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Subject Code</label>
+                        <input type="text" class="form-control" name="code" id="editSubjectCode" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Class</label>
+                        <select class="form-select" name="class_name" id="editSubjectClass" required>
+                            <option value="">Select Class</option>
+                            {% for class_item in classes %}
+                            <option value="{{ class_item }}">{{ class_item }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Stream (Optional)</label>
+                        <select class="form-select" name="course_id" id="editSubjectCourse">
+                            <option value="">Select Stream</option>
+                            {% for course in courses %}
+                            <option value="{{ course.id }}">{{ course.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Credits</label>
+                        <input type="number" class="form-control" name="credits" id="editSubjectCredits" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Type</label>
+                        <select class="form-select" name="type" id="editSubjectType" required>
+                            <option value="Theory">Theory</option>
+                            <option value="Practical">Practical</option>
+                            <option value="Language">Language</option>
+                            <option value="Elective">Elective</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -104,7 +171,10 @@ function editSubject(subjectId) {
     fetch('/admin/subject/get/' + subjectId)
         .then(res => res.json())
         .then(data => {
-            if (data.error) { alert(data.error); return; }
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
             document.getElementById('editSubjectId').value = data.id;
             document.getElementById('editSubjectName').value = data.name;
             document.getElementById('editSubjectCode').value = data.code;
@@ -116,14 +186,24 @@ function editSubject(subjectId) {
         })
         .catch(err => alert('Error loading subject: ' + err));
 }
+
 document.getElementById('editSubjectForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const formData = new FormData(this);
     const subjectId = document.getElementById('editSubjectId').value;
-    fetch('/admin/subject/edit/' + subjectId, { method: 'POST', body: formData })
-        .then(res => res.json())
-        .then(data => { if (data.success) location.reload(); else alert('Error: ' + (data.message || 'Update failed')); })
-        .catch(err => alert('Request failed: ' + err));
+    fetch('/admin/subject/edit/' + subjectId, {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.message || 'Update failed'));
+        }
+    })
+    .catch(err => alert('Request failed: ' + err));
 });
 </script>
 {% endblock %}
